@@ -460,6 +460,29 @@ function SimilarStays({ currentId, city }) {
   )
 }
 
+const Counter = ({ label, sub, value, setValue, min = 0 }) => (
+  <div className="flex items-center justify-between py-4 border-b last:border-0">
+    <div>
+      <p className="font-medium text-gray-900 text-sm">{label}</p>
+      <p className="text-xs text-gray-400">{sub}</p>
+    </div>
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => setValue(v => Math.max(min, v - 1))}
+        disabled={value <= min}
+        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-lg">
+        −
+      </button>
+      <span className="w-4 text-center text-sm font-medium">{value}</span>
+      <button
+        onClick={() => setValue(v => v + 1)}
+        className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 text-lg">
+        +
+      </button>
+    </div>
+  </div>
+)
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StayDetail() {
   const { id } = useParams()
@@ -473,6 +496,13 @@ export default function StayDetail() {
   const [galleryOpen, setGalleryOpen]   = useState(false)
   const [galleryStart, setGalleryStart] = useState(0)
   const [useCalendar, setUseCalendar]   = useState(false)
+   const [activeGuestPicker, setActiveGuestPicker] = useState(false)
+  const [adults, setAdults] = useState(0)
+  const [children, setChildren] = useState(0)
+  const [infants, setInfants] = useState(0)
+  const [pets, setPets] = useState(0)
+
+  const totalGuests = adults + children
 
   useEffect(() => {
     const ci = sessionStorage.getItem('stayCheckIn')
@@ -672,62 +702,114 @@ export default function StayDetail() {
         <SimilarStays currentId={id} city={city} />
       </div>
 
-      {/* MOBILE BOOKING BAR - Clean & Simple */}
+      {/* MOBILE BOOKING BAR - Airbnb style */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-        {/* Main row */}
-        <div className="flex items-center gap-2 px-3 py-2">
-          {/* Price */}
-          <div className="shrink-0">
-            <span className="text-base font-bold text-stay-500">${price_per_night}</span>
-            <span className="text-gray-400 text-[10px]">/nt</span>
+        <div className="px-4 py-3">
+          {/* Price row */}
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <span className="text-xl font-bold text-stay-500">${price_per_night}</span>
+              <span className="text-gray-400 text-sm">/night</span>
+              {nights > 0 && (
+                <span className="text-sm font-medium text-stay-600 ml-2">${total.toLocaleString()} total</span>
+              )}
+            </div>
+            {isSignedIn ? (
+              <button
+                onClick={handleBook}
+                disabled={booking}
+                className="px-5 py-2 bg-stay-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                {nights > 0 ? 'Reserve' : 'Check availability'}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn);
+                  if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut);
+                  sessionStorage.setItem('stayGuests', guests.toString());
+                  window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
+                }}
+                className="px-5 py-2 bg-stay-500 text-white rounded-xl text-sm font-semibold"
+              >
+                Sign in
+              </button>
+            )}
           </div>
 
-          {/* Check in */}
-          <input
-            type="date"
-            value={checkIn}
-            onChange={e => setCheckIn(e.target.value)}
-            className="flex-1 text-xs py-2 px-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-stay-400"
-            placeholder="Check in"
-          />
-
-          {/* Check out */}
-          <input
-            type="date"
-            value={checkOut}
-            onChange={e => setCheckOut(e.target.value)}
-            className="flex-1 text-xs py-2 px-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-stay-400"
-            placeholder="Check out"
-          />
-
-          {/* Reserve */}
-          <button
-            onClick={handleBook}
-            disabled={booking || !isSignedIn}
-            className="shrink-0 px-4 py-2 bg-stay-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
-          >
-            {!isSignedIn ? 'Sign in' : nights > 0 ? `$${total}` : 'Reserve'}
-          </button>
-        </div>
-
-        {/* Guest row - subtle */}
-        <div className="flex items-center justify-between px-3 pb-2 text-[11px] text-gray-400">
-          <div className="flex items-center gap-2">
-            <span>👥</span>
-            <select
-              value={guests}
-              onChange={e => setGuests(Number(e.target.value))}
-              className="text-[11px] text-gray-600 bg-transparent border-none focus:outline-none"
+          {/* Date and Guest buttons - side by side */}
+          <div className="flex gap-3 mt-1">
+            <button
+              onClick={() => setUseCalendar(!useCalendar)}
+              className="flex-1 flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl bg-white active:bg-gray-50"
             >
-              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
-            </select>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📅</span>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-gray-500">DATE</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {checkIn && checkOut 
+                      ? `${new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(checkOut).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                      : checkIn 
+                        ? `${new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric'})} - ?`
+                        : 'Add dates'}
+                  </p>
+                </div>
+              </div>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => setActiveGuestPicker(!activeGuestPicker)}
+              className="flex-1 flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl bg-white active:bg-gray-50"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">👥</span>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-gray-500">GUESTS</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {totalGuests > 0 ? `${totalGuests} guest${totalGuests > 1 ? 's' : ''}` : 'Add guests'}
+                    {infants > 0 && `, ${infants} infant${infants > 1 ? 's' : ''}`}
+                  </p>
+                </div>
+              </div>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            <span>✅ Free cancellation</span>
-            {nights > 0 && <span className="text-stay-500 font-medium">Total: ${total}</span>}
-          </div>
+
+          {/* Free cancellation note */}
+          <p className="text-center text-[10px] text-green-600 mt-2">
+            ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}
+          </p>
         </div>
       </div>
+
+      {/* Guest picker modal */}
+      {activeGuestPicker && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center lg:hidden" onClick={() => setActiveGuestPicker(false)}>
+          <div className="bg-white w-full rounded-t-2xl max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Who's coming?</h3>
+              <button onClick={() => setActiveGuestPicker(false)} className="text-gray-400 text-xl">✕</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <Counter label="Adults" sub="Ages 13+" value={adults} setValue={setAdults} />
+              <Counter label="Children" sub="Ages 2-12" value={children} setValue={setChildren} />
+              <Counter label="Infants" sub="Under 2" value={infants} setValue={setInfants} />
+              <Counter label="Pets" sub="Service animals" value={pets} setValue={setPets} />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t p-4">
+              <button onClick={() => setActiveGuestPicker(false)} className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
