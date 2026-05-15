@@ -85,13 +85,14 @@ export default function RentalsPage() {
 
       {/* Mobile filters drawer */}
       {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 md:hidden" onClick={() => setMobileFiltersOpen(false)}>
+        <div className="fixed inset-0 z-[9999] bg-black/50 md:hidden" onClick={() => setMobileFiltersOpen(false)}>
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Filter Rentals</h3>
               <button onClick={() => setMobileFiltersOpen(false)} className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="p-4 space-y-4">
+              {/* City input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">City or State</label>
                 <input
@@ -101,6 +102,8 @@ export default function RentalsPage() {
                   className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500"
                 />
               </div>
+              
+              {/* Property Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
                 <select
@@ -113,6 +116,8 @@ export default function RentalsPage() {
                   ))}
                 </select>
               </div>
+              
+              {/* Minimum Beds */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Beds</label>
                 <select
@@ -126,6 +131,8 @@ export default function RentalsPage() {
                   <option value="4">4+ beds</option>
                 </select>
               </div>
+              
+              {/* Max Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Max Price</label>
                 <select
@@ -140,6 +147,7 @@ export default function RentalsPage() {
                   <option value="4000">$4,000/mo</option>
                 </select>
               </div>
+              
               <div className="flex gap-3 pt-4">
                 <button onClick={clearFilters} className="flex-1 py-2.5 border rounded-xl text-sm font-medium text-gray-600">
                   Clear all
