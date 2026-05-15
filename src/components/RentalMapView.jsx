@@ -4,7 +4,6 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
-// Images are stored as objects with .url — same as the detail page: images[0]?.url
 const getCoverImage = (listing) =>
   listing?.images?.[0]?.url ?? listing?.coverImage ?? null
 
@@ -14,7 +13,6 @@ const PRICE_COLOR = (price) => {
   return { bg: '#A32D2D', border: '#D85A30', label: '#FAECE7' }
 }
 
-// Marker HTML with white outline ring
 const markerHtml = (l) => {
   const col = PRICE_COLOR(l.price || 0)
   return `
@@ -56,6 +54,18 @@ function applyFilters(listings, filters) {
   })
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setIsMobile(mq.matches)
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
+
 function StatsBar({ listings }) {
   const avg = listings.length
     ? Math.round(listings.reduce((s, l) => s + (l.price || 0), 0) / listings.length)
@@ -87,113 +97,103 @@ function StatsBar({ listings }) {
   )
 }
 
-function FilterBar({ filters, setFilters, listings }) {
+function FilterBar({ filters, setFilters, listings, isMobile }) {
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price || 0)) : 5000
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  
+  const hasActive = filters.beds !== 'Any' || filters.baths !== 'Any' || filters.maxPrice < maxPrice
   return (
-    <>
-      {/* Mobile filter button - only shows on mobile */}
-      <div className="md:hidden bg-white border-b px-3 py-2">
-        <button
-          onClick={() => setMobileFiltersOpen(true)}
-          className="w-full py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filters
-          {(filters.beds !== 'Any' || filters.baths !== 'Any' || filters.maxPrice < maxPrice) && (
-            <span className="w-2 h-2 bg-brand-500 rounded-full" />
-          )}
-        </button>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8,
+      padding: isMobile ? '6px 10px' : '8px 14px',
+      borderBottom: '1px solid #e5e7eb', background: '#fafafa',
+      flexShrink: 0, flexWrap: 'wrap',
+      overflowX: isMobile ? 'auto' : undefined,
+      WebkitOverflowScrolling: 'touch',
+    }}>
+      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500, flexShrink: 0 }}>Filters:</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{ fontSize: 12, color: '#374151', whiteSpace: 'nowrap' }}>
+          {filters.maxPrice >= maxPrice ? 'Any price' : `≤ $${filters.maxPrice.toLocaleString()}`}
+        </span>
+        <input type="range" min={500} max={maxPrice} step={100}
+          value={filters.maxPrice}
+          onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))}
+          style={{ width: isMobile ? 60 : 80, accentColor: '#3b5bdb' }}
+        />
       </div>
-
-      {/* Mobile filters modal */}
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 md:hidden" onClick={() => setMobileFiltersOpen(false)}>
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center">
-              <h3 className="font-semibold">Filter Rentals</h3>
-              <button onClick={() => setMobileFiltersOpen(false)} className="text-gray-400 text-xl">✕</button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="text-sm font-medium block mb-2">Max Price: ${filters.maxPrice}</label>
-                <input type="range" min={500} max={maxPrice} step={100}
-                  value={filters.maxPrice}
-                  onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))}
-                  className="w-full" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-2">Beds</label>
-                <div className="flex flex-wrap gap-2">
-                  {BED_OPTIONS.map(b => (
-                    <button key={b} onClick={() => setFilters(f => ({ ...f, beds: b }))}
-                      className={`px-3 py-1.5 rounded-lg text-sm ${filters.beds === b ? 'bg-brand-500 text-white' : 'bg-gray-100'}`}>
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-2">Baths</label>
-                <div className="flex flex-wrap gap-2">
-                  {BATH_OPTIONS.map(b => (
-                    <button key={b} onClick={() => setFilters(f => ({ ...f, baths: b }))}
-                      className={`px-3 py-1.5 rounded-lg text-sm ${filters.baths === b ? 'bg-brand-500 text-white' : 'bg-gray-100'}`}>
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button onClick={() => { setFilters({ beds: 'Any', baths: 'Any', maxPrice }); setMobileFiltersOpen(false) }}
-                className="w-full py-2.5 bg-red-100 text-red-600 rounded-lg text-sm font-medium">
-                Clear all filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop filter bar - unchanged */}
-      <div className="hidden md:flex items-center gap-2 px-4 py-2 border-b bg-gray-50 flex-wrap">
-        <span className="text-xs text-gray-500 font-medium">Filters:</span>
-        <div className="flex items-center gap-1">
-          <span className="text-xs">{filters.maxPrice >= maxPrice ? 'Any price' : `≤ $${filters.maxPrice}`}</span>
-          <input type="range" min={500} max={maxPrice} step={100}
-            value={filters.maxPrice}
-            onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))}
-            className="w-20 accent-brand-500" />
-        </div>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>Bed:</span>
         {BED_OPTIONS.map(b => (
           <button key={b} onClick={() => setFilters(f => ({ ...f, beds: b }))}
-            className={`text-[11px] px-2 py-1 rounded-full ${filters.beds === b ? 'bg-brand-500 text-white' : 'bg-white border'}`}>
-            {b}
-          </button>
+            style={{
+              fontSize: 11, padding: isMobile ? '3px 7px' : '3px 8px', borderRadius: 12,
+              border: `1px solid ${filters.beds === b ? '#3b5bdb' : '#d1d5db'}`,
+              background: filters.beds === b ? '#eff1ff' : '#fff',
+              color: filters.beds === b ? '#3b5bdb' : '#374151',
+              cursor: 'pointer', fontWeight: filters.beds === b ? 600 : 400,
+              WebkitTapHighlightColor: 'transparent',
+            }}>{b}</button>
         ))}
+      </div>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>Bath:</span>
         {BATH_OPTIONS.map(b => (
           <button key={b} onClick={() => setFilters(f => ({ ...f, baths: b }))}
-            className={`text-[11px] px-2 py-1 rounded-full ${filters.baths === b ? 'bg-brand-500 text-white' : 'bg-white border'}`}>
-            {b}
-          </button>
+            style={{
+              fontSize: 11, padding: isMobile ? '3px 7px' : '3px 8px', borderRadius: 12,
+              border: `1px solid ${filters.baths === b ? '#3b5bdb' : '#d1d5db'}`,
+              background: filters.baths === b ? '#eff1ff' : '#fff',
+              color: filters.baths === b ? '#3b5bdb' : '#374151',
+              cursor: 'pointer', fontWeight: filters.baths === b ? 600 : 400,
+              WebkitTapHighlightColor: 'transparent',
+            }}>{b}</button>
         ))}
-        {(filters.beds !== 'Any' || filters.baths !== 'Any' || filters.maxPrice < maxPrice) && (
-          <button onClick={() => setFilters({ beds: 'Any', baths: 'Any', maxPrice })}
-            className="text-[11px] px-2 py-1 rounded-full bg-red-100 text-red-600">
-            Clear
-          </button>
-        )}
       </div>
-    </>
+      {hasActive && (
+        <button onClick={() => setFilters({ beds: 'Any', baths: 'Any', maxPrice })}
+          style={{
+            fontSize: 11, padding: '3px 10px', borderRadius: 12, flexShrink: 0,
+            border: '1px solid #fca5a5', background: '#fef2f2',
+            color: '#dc2626', cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+          }}>Clear ×</button>
+      )}
+    </div>
   )
 }
 
-function ListingSidebar({ listings, activeId, onHover, onClick }) {
+function MobileTabBar({ tab, setTab, listCount }) {
   return (
     <div style={{
-      width: 230, flexShrink: 0, overflowY: 'auto',
-      borderRight: '1px solid #e5e7eb', background: '#fff'
+      display: 'flex', borderBottom: '1px solid #e5e7eb',
+      background: '#fff', flexShrink: 0,
+    }}>
+      {[
+        { key: 'list', label: `List (${listCount})` },
+        { key: 'map', label: '🗺 Map' },
+      ].map(t => (
+        <button key={t.key} onClick={() => setTab(t.key)}
+          style={{
+            flex: 1, padding: '11px 0', fontSize: 13, fontWeight: tab === t.key ? 700 : 500,
+            color: tab === t.key ? '#3b5bdb' : '#6b7280',
+            background: 'none', border: 'none', cursor: 'pointer',
+            borderBottom: tab === t.key ? '2px solid #3b5bdb' : '2px solid transparent',
+            marginBottom: -1, transition: 'color .15s',
+            WebkitTapHighlightColor: 'transparent',
+          }}>{t.label}</button>
+      ))}
+    </div>
+  )
+}
+
+function ListingSidebar({ listings, activeId, onHover, onClick, isMobile }) {
+  return (
+    <div style={{
+      width: isMobile ? '100%' : 230,
+      flexShrink: 0,
+      overflowY: 'auto',
+      borderRight: isMobile ? 'none' : '1px solid #e5e7eb',
+      background: '#fff',
+      flex: isMobile ? 1 : undefined,
     }}>
       {listings.length === 0 && (
         <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
@@ -206,52 +206,68 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
         const cover = getCoverImage(l)
         return (
           <div key={l.id}
-            onMouseEnter={() => onHover(l.id)}
-            onMouseLeave={() => onHover(null)}
+            onMouseEnter={() => !isMobile && onHover(l.id)}
+            onMouseLeave={() => !isMobile && onHover(null)}
             onClick={() => onClick(l)}
             style={{
-              padding: '10px 12px', borderBottom: '1px solid #f3f4f6',
+              padding: isMobile ? '12px 14px' : '10px 12px',
+              borderBottom: '1px solid #f3f4f6',
               cursor: 'pointer', transition: 'background .12s',
               background: active ? '#f5f7ff' : '#fff',
-              borderLeft: active ? '3px solid #3b5bdb' : '3px solid transparent'
+              borderLeft: active ? '3px solid #3b5bdb' : '3px solid transparent',
+              display: isMobile ? 'flex' : 'block',
+              gap: isMobile ? 12 : undefined,
+              alignItems: isMobile ? 'flex-start' : undefined,
             }}
           >
             {cover ? (
               <img src={cover} alt={l.title}
-                style={{ width: '100%', height: 68, objectFit: 'cover', borderRadius: 8, marginBottom: 7, display: 'block' }} />
+                style={{
+                  width: isMobile ? 80 : '100%',
+                  height: isMobile ? 80 : 68,
+                  objectFit: 'cover', borderRadius: 8,
+                  marginBottom: isMobile ? 0 : 7,
+                  flexShrink: isMobile ? 0 : undefined,
+                  display: 'block',
+                }} />
             ) : (
               <div style={{
-                width: '100%', height: 68, borderRadius: 8, marginBottom: 7,
+                width: isMobile ? 80 : '100%',
+                height: isMobile ? 80 : 68,
+                borderRadius: 8, marginBottom: isMobile ? 0 : 7,
                 background: '#f3f4f6', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: '#9ca3af', fontSize: 11
+                justifyContent: 'center', color: '#9ca3af', fontSize: 11,
+                flexShrink: isMobile ? 0 : undefined,
               }}>No photo</div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>
-                ${l.price?.toLocaleString()}<span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280' }}>/mo</span>
-              </span>
-              <span style={{
-                fontSize: 10, padding: '2px 7px', borderRadius: 10,
-                background: col.label, color: col.bg, fontWeight: 600
-              }}>
-                {l.price < 2000 ? 'Budget' : l.price < 3000 ? 'Mid' : 'Premium'}
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: '#374151', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {l.title}
-            </div>
-            <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-              {[`${l.bedrooms} bd`, `${l.bathrooms} ba`].map(t => (
-                <span key={t} style={{
-                  fontSize: 10, padding: '2px 7px', borderRadius: 8,
-                  background: '#f3f4f6', color: '#4b5563'
-                }}>{t}</span>
-              ))}
-              {l.city && (
-                <span style={{ fontSize: 10, color: '#9ca3af', alignSelf: 'center', marginLeft: 'auto' }}>
-                  {l.city}, {l.state}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>
+                  ${l.price?.toLocaleString()}<span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280' }}>/mo</span>
                 </span>
-              )}
+                <span style={{
+                  fontSize: 10, padding: '2px 7px', borderRadius: 10,
+                  background: col.label, color: col.bg, fontWeight: 600
+                }}>
+                  {l.price < 2000 ? 'Budget' : l.price < 3000 ? 'Mid' : 'Premium'}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#374151', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {l.title}
+              </div>
+              <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
+                {[`${l.bedrooms} bd`, `${l.bathrooms} ba`].map(t => (
+                  <span key={t} style={{
+                    fontSize: 10, padding: '2px 7px', borderRadius: 8,
+                    background: '#f3f4f6', color: '#4b5563'
+                  }}>{t}</span>
+                ))}
+                {l.city && (
+                  <span style={{ fontSize: 10, color: '#9ca3af', alignSelf: 'center', marginLeft: 'auto' }}>
+                    {l.city}, {l.state}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )
@@ -260,7 +276,7 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-function MapPopup({ listing, onClose }) {
+function MapPopup({ listing, onClose, isMobile }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
   if (!listing) return null
@@ -269,18 +285,41 @@ function MapPopup({ listing, onClose }) {
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
 
-  return (
-    <div style={{
-      position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
-      transform: 'translateX(-50%)', width: 288,
-      background: '#fff', borderRadius: 18,
-      boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
-      overflow: 'hidden', border: '1px solid #e5e7eb',
-      animation: 'popIn .18s ease'
-    }}>
-      <style>{`@keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
+  const mobileStyle = {
+    position: 'absolute', zIndex: 1000,
+    bottom: 0, left: 0, right: 0, width: '100%',
+    background: '#fff', borderRadius: '18px 18px 0 0',
+    boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+    overflow: 'hidden', border: '1px solid #e5e7eb',
+    animation: 'slideUp .2s ease',
+  }
+  const desktopStyle = {
+    position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
+    transform: 'translateX(-50%)', width: 288,
+    background: '#fff', borderRadius: 18,
+    boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
+    overflow: 'hidden', border: '1px solid #e5e7eb',
+    animation: 'popIn .18s ease',
+  }
 
-      <div style={{ position: 'relative', width: '100%', height: 160, background: '#f3f4f6', overflow: 'hidden' }}>
+  return (
+    <div style={isMobile ? mobileStyle : desktopStyle}>
+      <style>{`
+        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+      `}</style>
+
+      {isMobile && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#d1d5db' }} />
+        </div>
+      )}
+
+      <div style={{
+        position: 'relative', width: '100%',
+        height: isMobile ? 200 : 160,
+        background: '#f3f4f6', overflow: 'hidden'
+      }}>
         {activeUrl ? (
           <img src={activeUrl} alt={listing.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }} />
@@ -289,7 +328,6 @@ function MapPopup({ listing, onClose }) {
             No photo
           </div>
         )}
-
         <div style={{
           position: 'absolute', top: 10, left: 10,
           background: col.bg, color: '#fff',
@@ -300,15 +338,14 @@ function MapPopup({ listing, onClose }) {
         }}>
           ${listing.price?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>/mo</span>
         </div>
-
         <button onClick={onClose} style={{
           position: 'absolute', top: 8, right: 8,
-          width: 28, height: 28, borderRadius: '50%',
+          width: 30, height: 30, borderRadius: '50%',
           background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)',
-          color: '#fff', fontSize: 14, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>x</button>
-
+          color: '#fff', fontSize: 16, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          WebkitTapHighlightColor: 'transparent',
+        }}>×</button>
         {images.length > 1 && (
           <div style={{
             position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
@@ -326,7 +363,7 @@ function MapPopup({ listing, onClose }) {
         )}
       </div>
 
-      <div style={{ padding: '12px 14px 14px' }}>
+      <div style={{ padding: isMobile ? '14px 16px 20px' : '12px 14px 14px' }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2, lineHeight: 1.35 }}>
           {listing.title}
         </div>
@@ -347,7 +384,7 @@ function MapPopup({ listing, onClose }) {
         </div>
         <a href={`/rentals/${listing.id}`} style={{
           display: 'block', textAlign: 'center',
-          padding: '9px', borderRadius: 10,
+          padding: isMobile ? '11px' : '9px', borderRadius: 10,
           background: '#3b5bdb', color: '#fff',
           fontSize: 13, fontWeight: 600,
           textDecoration: 'none', letterSpacing: 0.2
@@ -369,11 +406,20 @@ export default function RentalMapView({ listings = [] }) {
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price || 0)) : 5000
   const [filters, setFilters] = useState({ beds: 'Any', baths: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
+  const isMobile = useIsMobile()
+  const [mobileTab, setMobileTab] = useState('list')
 
+  // Invalidate map size when switching to map tab on mobile
+  useEffect(() => {
+    if (isMobile && mobileTab === 'map' && mapInstanceRef.current) {
+      setTimeout(() => mapInstanceRef.current.invalidateSize(), 50)
+    }
+  }, [isMobile, mobileTab])
+
+  // Initialize map (only once)
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapInstanceRef.current) return
-
     let isMounted = true
 
     const initMap = async () => {
@@ -381,7 +427,6 @@ export default function RentalMapView({ listings = [] }) {
         const L = (await import('leaflet')).default
         window.L = L
         await import('leaflet.markercluster')
-
         if (!isMounted) return
         LRef.current = L
 
@@ -392,17 +437,12 @@ export default function RentalMapView({ listings = [] }) {
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
         })
 
-        const map = L.map(mapRef.current, {
-          zoomControl: false,
-          scrollWheelZoom: false,
-        })
+        const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: false, tap: true })
         mapInstanceRef.current = map
 
         const el = mapRef.current
-        const enable = () => map.scrollWheelZoom.enable()
-        const disable = () => map.scrollWheelZoom.disable()
-        el.addEventListener('mouseenter', enable)
-        el.addEventListener('mouseleave', disable)
+        el.addEventListener('mouseenter', () => map.scrollWheelZoom.enable())
+        el.addEventListener('mouseleave', () => map.scrollWheelZoom.disable())
 
         L.control.zoom({ position: 'topright' }).addTo(map)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -411,56 +451,27 @@ export default function RentalMapView({ listings = [] }) {
         }).addTo(map)
 
         const cluster = L.markerClusterGroup({
-          chunkedLoading: true,
-          maxClusterRadius: 50,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: true,
-          zoomToBoundsOnClick: true,
+          chunkedLoading: true, maxClusterRadius: 50,
+          spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true,
           iconCreateFunction: function(cluster) {
-            const childCount = cluster.getChildCount();
-            let size = 'small';
-            let bgColor = '#3b5bdb';
-            if (childCount > 10) {
-              size = 'large';
-              bgColor = '#dc2626';
-            } else if (childCount > 5) {
-              size = 'medium';
-              bgColor = '#e8590c';
-            }
-            const width = size === 'large' ? 46 : size === 'medium' ? 38 : 30;
-            const height = size === 'large' ? 46 : size === 'medium' ? 38 : 30;
-            const fontSize = size === 'large' ? 14 : size === 'medium' ? 12 : 11;
-            
+            const childCount = cluster.getChildCount()
+            let bgColor = '#3b5bdb', w = 30
+            if (childCount > 10) { bgColor = '#dc2626'; w = 46 }
+            else if (childCount > 5) { bgColor = '#e8590c'; w = 38 }
+            const fs = w === 46 ? 14 : w === 38 ? 12 : 11
             return L.divIcon({
-              html: `<div style="
-                background-color: ${bgColor};
-                width: ${width}px;
-                height: ${height}px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: ${fontSize}px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-                border: 2px solid white;
-              ">${childCount}</div>`,
-              className: '',
-              iconSize: [width, height],
-              iconAnchor: [width / 2, height / 2],
-            });
+              html: `<div style="background:${bgColor};width:${w}px;height:${w}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:${fs}px;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid #fff;">${childCount}</div>`,
+              className: '', iconSize: [w, w], iconAnchor: [w / 2, w / 2],
+            })
           }
         })
         clusterRef.current = cluster
         cluster.addTo(map)
-        
         setIsMapReady(true)
 
         const valid = listings.filter(l => l.lat && l.lng)
         if (valid.length && isMounted) {
-          const bounds = L.latLngBounds(valid.map(l => [l.lat, l.lng]))
-          map.fitBounds(bounds.pad(0.2))
+          map.fitBounds(L.latLngBounds(valid.map(l => [l.lat, l.lng])).pad(0.2))
         } else if (isMounted) {
           map.setView([39.5, -98.35], 4)
         }
@@ -470,7 +481,6 @@ export default function RentalMapView({ listings = [] }) {
     }
 
     initMap()
-
     return () => {
       isMounted = false
       if (mapInstanceRef.current) {
@@ -485,34 +495,20 @@ export default function RentalMapView({ listings = [] }) {
 
   useEffect(() => {
     if (!isMapReady) return
-    
-    const addMarkers = () => {
-      const L = LRef.current
-      const cluster = clusterRef.current
-      if (!L || !cluster) return
+    const L = LRef.current
+    const cluster = clusterRef.current
+    if (!L || !cluster) return
 
-      cluster.clearLayers()
-      markersRef.current = {}
-
-      filtered.forEach(l => {
-        if (!l.lat || !l.lng) return
-        
-        const icon = L.divIcon({ 
-          className: '', 
-          iconAnchor: [40, 42], 
-          html: markerHtml(l) 
-        })
-        const marker = L.marker([l.lat, l.lng], { icon })
-        marker.on('click', () => { 
-          setPopupListing(l); 
-          setActiveId(l.id) 
-        })
-        markersRef.current[l.id] = marker
-        cluster.addLayer(marker)
-      })
-    }
-
-    addMarkers()
+    cluster.clearLayers()
+    markersRef.current = {}
+    filtered.forEach(l => {
+      if (!l.lat || !l.lng) return
+      const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
+      const marker = L.marker([l.lat, l.lng], { icon })
+      marker.on('click', () => { setPopupListing(l); setActiveId(l.id) })
+      markersRef.current[l.id] = marker
+      cluster.addLayer(marker)
+    })
   }, [filtered, isMapReady])
 
   useEffect(() => {
@@ -530,77 +526,121 @@ export default function RentalMapView({ listings = [] }) {
   const handleSidebarClick = useCallback((l) => {
     setPopupListing(l)
     setActiveId(l.id)
-    const map = mapInstanceRef.current
-    if (map && l.lat && l.lng) {
-      map.flyTo([l.lat, l.lng], Math.max(map.getZoom(), 14), { duration: 0.6 })
-    }
-  }, [])
+    if (isMobile) setMobileTab('map')
+    setTimeout(() => {
+      const map = mapInstanceRef.current
+      if (map && l.lat && l.lng) {
+        map.invalidateSize()
+        map.flyTo([l.lat, l.lng], Math.max(map.getZoom(), 14), { duration: 0.6 })
+      }
+    }, isMobile ? 80 : 0)
+  }, [isMobile])
 
   const handleSidebarHover = useCallback((id) => setActiveId(id), [])
 
+  const fitAllBtn = (
+    <button
+      onClick={() => {
+        const map = mapInstanceRef.current
+        const cluster = clusterRef.current
+        if (!map || !cluster) return
+        const bounds = cluster.getBounds()
+        if (bounds && bounds.isValid()) map.fitBounds(bounds)
+      }}
+      style={{
+        position: 'absolute', top: 14, left: 14, zIndex: 500,
+        background: '#fff', border: '1px solid #d1d5db',
+        borderRadius: 8, padding: '6px 12px',
+        fontSize: 12, color: '#374151', cursor: 'pointer',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        display: 'flex', alignItems: 'center', gap: 5,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >Fit all listings</button>
+  )
+
+  const legend = (
+    <div style={{
+      position: 'absolute', bottom: 20, left: 14, zIndex: 500,
+      background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
+      padding: '8px 12px', fontSize: 11, color: '#4b5563',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', pointerEvents: 'none'
+    }}>
+      <div style={{ fontWeight: 600, marginBottom: 4, color: '#111' }}>Price</div>
+      {[
+        { color: '#0F6E56', label: 'Under $2k' },
+        { color: '#854F0B', label: '$2k - $3k' },
+        { color: '#A32D2D', label: '$3k+' },
+      ].map(r => (
+        <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color }} />
+          {r.label}
+        </div>
+      ))}
+    </div>
+  )
+
+  // ── DESKTOP (unchanged) ──────────────────────────────────────────────────
+  if (!isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+        <StatsBar listings={filtered} />
+        <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={false} />
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <ListingSidebar listings={filtered} activeId={activeId} onHover={handleSidebarHover} onClick={handleSidebarClick} isMobile={false} />
+          <div style={{ flex: 1, position: 'relative' }}>
+            <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+            {legend}
+            {fitAllBtn}
+            <MapPopup listing={popupListing} onClose={() => { setPopupListing(null); setActiveId(null) }} isMobile={false} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── MOBILE ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      width: '100%', height: '100svh',
+      fontFamily: 'system-ui, sans-serif', overflow: 'hidden',
+    }}>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
       <StatsBar listings={filtered} />
-      <FilterBar filters={filters} setFilters={setFilters} listings={listings} />
+      <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={true} />
+      <MobileTabBar tab={mobileTab} setTab={setMobileTab} listCount={filtered.length} />
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <ListingSidebar
-          listings={filtered}
-          activeId={activeId}
-          onHover={handleSidebarHover}
-          onClick={handleSidebarClick}
-        />
+      {/* Both panels always mounted so Leaflet map stays alive */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
 
-        <div style={{ flex: 1, position: 'relative' }}>
+        {/* List panel */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: mobileTab === 'list' ? 'flex' : 'none',
+          flexDirection: 'column', overflowY: 'auto',
+        }}>
+          <ListingSidebar listings={filtered} activeId={activeId} onHover={handleSidebarHover} onClick={handleSidebarClick} isMobile={true} />
+        </div>
+
+        {/* Map panel — always mounted, visibility toggled */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          visibility: mobileTab === 'map' ? 'visible' : 'hidden',
+          pointerEvents: mobileTab === 'map' ? 'auto' : 'none',
+        }}>
           <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
-
-          {/* Price legend */}
-          <div style={{
-            position: 'absolute', bottom: 20, left: 14, zIndex: 500,
-            background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
-            padding: '8px 12px', fontSize: 11, color: '#4b5563',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)', pointerEvents: 'none'
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 4, color: '#111' }}>Price</div>
-            {[
-              { color: '#0F6E56', label: 'Under $2k' },
-              { color: '#854F0B', label: '$2k - $3k' },
-              { color: '#A32D2D', label: '$3k+' },
-            ].map(r => (
-              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color }} />
-                {r.label}
-              </div>
-            ))}
-          </div>
-
-          {/* Fit all button */}
-          <button
-            onClick={() => {
-              const map = mapInstanceRef.current
-              const cluster = clusterRef.current
-              if (!map || !cluster) return
-              const bounds = cluster.getBounds()
-              if (bounds && bounds.isValid()) {
-                map.fitBounds(bounds)
-              }
-            }}
-            style={{
-              position: 'absolute', top: 14, left: 14, zIndex: 500,
-              background: '#fff', border: '1px solid #d1d5db',
-              borderRadius: 8, padding: '6px 12px',
-              fontSize: 12, color: '#374151', cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-              display: 'flex', alignItems: 'center', gap: 5
-            }}
-          >
-            Fit all listings
-          </button>
-
-          <MapPopup listing={popupListing} onClose={() => { setPopupListing(null); setActiveId(null) }} />
+          {mobileTab === 'map' && legend}
+          {mobileTab === 'map' && fitAllBtn}
+          {mobileTab === 'map' && (
+            <MapPopup listing={popupListing} onClose={() => { setPopupListing(null); setActiveId(null) }} isMobile={true} />
+          )}
         </div>
       </div>
     </div>
