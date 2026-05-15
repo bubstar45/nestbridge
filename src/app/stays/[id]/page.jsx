@@ -501,7 +501,7 @@ export default function StayDetail() {
   const [children, setChildren] = useState(0)
   const [infants, setInfants] = useState(0)
   const [pets, setPets] = useState(0)
-
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const totalGuests = adults + children
 
   useEffect(() => {
@@ -702,25 +702,25 @@ export default function StayDetail() {
         <SimilarStays currentId={id} city={city} />
       </div>
 
-      {/* MOBILE BOOKING BAR - Airbnb style */}
+      {/* MOBILE BOOKING BAR - Compact */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-        <div className="px-4 py-3">
-          {/* Price row */}
+        <div className="px-3 py-2">
+          {/* Top row: Price + Reserve button */}
           <div className="flex items-center justify-between mb-2">
             <div>
-              <span className="text-xl font-bold text-stay-500">${price_per_night}</span>
-              <span className="text-gray-400 text-sm">/night</span>
+              <span className="text-lg font-bold text-stay-500">${price_per_night}</span>
+              <span className="text-gray-400 text-xs">/night</span>
               {nights > 0 && (
-                <span className="text-sm font-medium text-stay-600 ml-2">${total.toLocaleString()} total</span>
+                <span className="text-xs font-medium text-stay-600 ml-1">${total.toLocaleString()} total</span>
               )}
             </div>
             {isSignedIn ? (
               <button
                 onClick={handleBook}
                 disabled={booking}
-                className="px-5 py-2 bg-stay-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+                className="px-4 py-1.5 bg-stay-500 text-white rounded-lg text-sm font-semibold disabled:opacity-50"
               >
-                {nights > 0 ? 'Reserve' : 'Check availability'}
+                {nights > 0 ? 'Reserve' : 'Check'}
               </button>
             ) : (
               <button
@@ -730,59 +730,58 @@ export default function StayDetail() {
                   sessionStorage.setItem('stayGuests', guests.toString());
                   window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
                 }}
-                className="px-5 py-2 bg-stay-500 text-white rounded-xl text-sm font-semibold"
+                className="px-4 py-1.5 bg-stay-500 text-white rounded-lg text-sm font-semibold"
               >
                 Sign in
               </button>
             )}
           </div>
 
-          {/* Date and Guest buttons - side by side */}
-          <div className="flex gap-3 mt-1">
+          {/* Bottom row: Date and Guest buttons */}
+          <div className="flex gap-2">
             <button
-              onClick={() => setUseCalendar(!useCalendar)}
-              className="flex-1 flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl bg-white active:bg-gray-50"
+              onClick={() => setShowDatePicker(true)}
+              className="flex-1 flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white active:bg-gray-50"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📅</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">📅</span>
                 <div className="text-left">
-                  <p className="text-xs font-medium text-gray-500">DATE</p>
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="text-[10px] font-medium text-gray-400">DATE</p>
+                  <p className="text-xs font-semibold text-gray-800">
                     {checkIn && checkOut 
                       ? `${new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(checkOut).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                       : checkIn 
                         ? `${new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric'})} - ?`
-                        : 'Add dates'}
+                        : 'Select dates'}
                   </p>
                 </div>
               </div>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             <button
-              onClick={() => setActiveGuestPicker(!activeGuestPicker)}
-              className="flex-1 flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl bg-white active:bg-gray-50"
+              onClick={() => setActiveGuestPicker(true)}
+              className="flex-1 flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white active:bg-gray-50"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">👥</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">👥</span>
                 <div className="text-left">
-                  <p className="text-xs font-medium text-gray-500">GUESTS</p>
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="text-[10px] font-medium text-gray-400">GUESTS</p>
+                  <p className="text-xs font-semibold text-gray-800">
                     {totalGuests > 0 ? `${totalGuests} guest${totalGuests > 1 ? 's' : ''}` : 'Add guests'}
-                    {infants > 0 && `, ${infants} infant${infants > 1 ? 's' : ''}`}
                   </p>
                 </div>
               </div>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
 
           {/* Free cancellation note */}
-          <p className="text-center text-[10px] text-green-600 mt-2">
+          <p className="text-center text-[9px] text-green-600 mt-1.5">
             ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}
           </p>
         </div>
@@ -807,6 +806,36 @@ export default function StayDetail() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+            {/* Date picker modal */}
+      {showDatePicker && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col lg:hidden" onClick={() => setShowDatePicker(false)}>
+          <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Select dates</h3>
+            <button onClick={() => setShowDatePicker(false)} className="text-gray-400 text-xl">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
+            <AvailabilityCalendar 
+              minNights={min_nights} 
+              blockedDates={blocked_dates} 
+              checkIn={checkIn} 
+              checkOut={checkOut} 
+              onChange={({ checkIn: ci, checkOut: co }) => { 
+                setCheckIn(ci); 
+                setCheckOut(co); 
+              }} 
+            />
+          </div>
+          <div className="sticky bottom-0 bg-white border-t p-4">
+            <button 
+              onClick={() => setShowDatePicker(false)} 
+              className="w-full py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
