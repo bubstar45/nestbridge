@@ -185,38 +185,131 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
   )
 }
 
-// ── Airbnb-style Photo Grid ───────────────────────────────────────────────────
+// ── Airbnb-style Photo Grid (with swipe on mobile) ───────────────────────────
 function PhotoGrid({ images, onOpen }) {
   const hasImages = images.length > 0
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const touchStartX = useRef(0)
+  const touchEndX = useRef(0)
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < images.length - 1) {
+        setCurrentIndex(currentIndex + 1)
+      } else if (diff < 0 && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1)
+      }
+    }
+    touchStartX.current = 0
+    touchEndX.current = 0
+  }
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+
+  // Only show swipe UI on mobile if there are multiple images
+  const showSwipe = images.length > 1
 
   return (
     <div className="relative mb-6 sm:mb-8">
-      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 h-[240px] sm:h-[340px] rounded-xl sm:rounded-2xl overflow-hidden">
-        <div className="relative bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => onOpen(0)}>
-          {images[0]?.url ? (
-            <img src={images[0].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300" /></div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 sm:gap-2">
-          {[1, 2, 3, 4].map((slot, idx) => (
-            <div key={slot} className="relative bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => onOpen(hasImages ? Math.min(slot, images.length - 1) : 0)}>
-              {images[slot]?.url ? (
-                <img src={images[slot].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-6 h-6 sm:w-8 sm:h-8 text-gray-300" /></div>
-              )}
+      {/* Mobile: Swipeable single image */}
+      <div className="block sm:hidden">
+        {hasImages ? (
+          <div
+            className="relative rounded-xl overflow-hidden bg-gray-100"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <img
+              src={images[currentIndex]?.url}
+              alt=""
+              className="w-full h-[280px] object-cover"
+            />
+            {/* Image counter */}
+            {showSwipe && (
+              <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                {currentIndex + 1} / {images.length}
+              </div>
+            )}
+            {/* Swipe indicators */}
+            {showSwipe && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentIndex(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            {/* Show all photos button */}
+            <button
+              onClick={() => onOpen(0)}
+              className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 hover:bg-white text-gray-800 text-xs font-semibold px-2 py-1.5 rounded-lg shadow-sm"
+            >
+              <IconGrid className="w-3 h-3" />
+              All {images.length}
+            </button>
+          </div>
+        ) : (
+          <div
+            className="relative bg-gray-100 rounded-xl h-[280px] flex items-center justify-center cursor-pointer"
+            onClick={() => onOpen(0)}
+          >
+            <IconPhoto className="w-12 h-12 text-gray-300" />
+            <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+              No photos
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
-      {hasImages && (
-        <button onClick={() => onOpen(0)} className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 text-[10px] sm:text-sm font-semibold px-2 sm:px-4 py-1 sm:py-2.5 rounded-lg sm:rounded-xl shadow-sm transition-all hover:shadow-md">
-          <IconGrid className="w-3 h-3 sm:w-4 sm:h-4" />
-          Show all photos
-        </button>
-      )}
+
+      {/* Desktop: Original 2x2 grid layout */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 h-[240px] sm:h-[340px] rounded-xl sm:rounded-2xl overflow-hidden">
+          <div className="relative bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => onOpen(0)}>
+            {images[0]?.url ? (
+              <img src={images[0].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300" /></div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 grid-rows-2 gap-1.5 sm:gap-2">
+            {[1, 2, 3, 4].map((slot, idx) => (
+              <div
+                key={slot}
+                className="relative bg-gray-100 cursor-pointer overflow-hidden group"
+                onClick={() => onOpen(hasImages ? Math.min(slot, images.length - 1) : 0)}
+              >
+                {images[slot]?.url ? (
+                  <img src={images[slot].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-6 h-6 sm:w-8 sm:h-8 text-gray-300" /></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        {hasImages && (
+          <button
+            onClick={() => onOpen(0)}
+            className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 text-[10px] sm:text-sm font-semibold px-2 sm:px-4 py-1 sm:py-2.5 rounded-lg sm:rounded-xl shadow-sm transition-all hover:shadow-md"
+          >
+            <IconGrid className="w-3 h-3 sm:w-4 sm:h-4" />
+            Show all photos
+          </button>
+        )}
+      </div>
     </div>
   )
 }
