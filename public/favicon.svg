@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img">
+  <title>NestBridge</title>
+
+  <!-- arch / bridge curve -->
+  <path d="M 4 24 Q 16 6 28 24" fill="none" stroke="#4A90D9" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- deck -->
+  <rect x="2" y="22.5" width="28" height="3" rx="1.5" fill="#1B3A6B"/>
+  <!-- left pillar -->
+  <rect x="2" y="25.5" width="3.5" height="5" rx="1" fill="#1B3A6B"/>
+  <!-- right pillar -->
+  <rect x="26.5" y="25.5" width="3.5" height="5" rx="1" fill="#1B3A6B"/>
+  <!-- roof -->
+  <polygon points="11.5,17 16,8 20.5,17" fill="#4A90D9"/>
+  <!-- house body -->
+  <rect x="12" y="16.5" width="8" height="7.5" rx="1" fill="#1B3A6B" opacity="0.15"/>
+  <rect x="12" y="16.5" width="8" height="7.5" rx="1" fill="none" stroke="#4A90D9" stroke-width="1"/>
+  <!-- door -->
+  <rect x="14" y="19.5" width="4" height="5" rx="0.8" fill="#1B3A6B"/>
+  <!-- location pin -->
+  <circle cx="16" cy="4" r="2.8" fill="#4A90D9"/>
+  <circle cx="16" cy="4" r="1.2" fill="white"/>
+</svg>

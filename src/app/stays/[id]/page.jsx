@@ -1,0 +1,842 @@
+'use client'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useParams } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
+import useSWR from 'swr'
+import { getListing, getListings, createBooking } from '@/lib/api'
+import Link from 'next/link'
+import toast from 'react-hot-toast'
+import ReviewsSection from '@/components/ReviewsSection'
+import StayCard from '@/components/StayCard'
+
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+function IconPhoto({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4-4 3 3 4-5 5 6M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
+}
+function IconMaximize({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+}
+function IconMinimize({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4m0 0v4m0-4h4m6-4v4m0-4h4m0 0l-5 5M4 20l5-5m-5 5v-4m0 4h4m6 0h4m0 0v-4m0 4l-5-5"/></svg>
+}
+function IconShare({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+}
+function IconHeart({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+}
+function IconGrid({ className = 'w-4 h-4' }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={1.8}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={1.8}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={1.8}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={1.8}/></svg>
+}
+
+// ── Photo Gallery Modal ────────────────────────────────────────────────────────
+function PhotoGalleryModal({ images, startIndex, onClose }) {
+  const [current, setCurrentIdx] = useState(startIndex)
+  const [zoomed, setZoomed]      = useState(false)
+  const [origin, setOrigin]      = useState({ x: 50, y: 50 })
+  const [pan, setPan]            = useState({ x: 0, y: 0 })
+  const dragging                 = useRef(false)
+  const dragStart                = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+  const galleryPaneRef           = useRef(null)
+  const imgRef                   = useRef(null)
+  const [saved, setSaved]        = useState(false)
+  const [copied, setCopied]      = useState(false)
+
+  const enterFullscreen = () => {
+    const el = galleryPaneRef.current
+    if (!el) return
+    if (el.requestFullscreen)            el.requestFullscreen()
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+    else if (el.mozRequestFullScreen)    el.mozRequestFullScreen()
+  }
+
+  // Reset zoom/pan when switching photos
+  useEffect(() => { setZoomed(false); setPan({ x: 0, y: 0 }) }, [current])
+
+  const handleImgClick = (e) => {
+    if (dragging.wasDrag) { dragging.wasDrag = false; return }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ox = ((e.clientX - rect.left) / rect.width)  * 100
+    const oy = ((e.clientY - rect.top)  / rect.height) * 100
+    if (zoomed) {
+      setZoomed(false); setPan({ x: 0, y: 0 })
+    } else {
+      setOrigin({ x: ox, y: oy }); setPan({ x: 0, y: 0 }); setZoomed(true)
+    }
+  }
+
+  const handleMouseDown = (e) => {
+    if (!zoomed) return
+    e.preventDefault()
+    dragging.current = true; dragging.wasDrag = false
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y }
+  }
+  const handleMouseMove = (e) => {
+    if (!dragging.current) return
+    const dx = e.clientX - dragStart.current.mx
+    const dy = e.clientY - dragStart.current.my
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.wasDrag = true
+    setPan({ x: dragStart.current.px + dx, y: dragStart.current.py + dy })
+  }
+  const handleMouseUp = () => { dragging.current = false }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try { await navigator.share({ title: document.title, url }); return } catch (_) {}
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    } catch (_) {}
+  }
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (e.key === 'Escape') { if (zoomed) { setZoomed(false); setPan({ x: 0, y: 0 }) } else onClose() }
+      if (!zoomed && e.key === 'ArrowLeft')  setCurrentIdx(i => Math.max(0, i - 1))
+      if (!zoomed && e.key === 'ArrowRight') setCurrentIdx(i => Math.min(images.length - 1, i + 1))
+    }
+    window.addEventListener('keydown', handle)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', handle); document.body.style.overflow = '' }
+  }, [onClose, zoomed, images.length])
+
+  const currentImg = images[current]
+
+  return (
+    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 border-b shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          <span className="text-sm text-gray-500">{current + 1} of {images.length} photos</span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+          >
+            <IconShare className="w-4 h-4" />
+            {copied ? 'Copied!' : 'Share'}
+          </button>
+          <button
+            onClick={() => setSaved(s => !s)}
+            className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
+              saved ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <IconHeart className={`w-4 h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500 scale-110' : ''}`} />
+            {saved ? 'Saved' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Main photo pane */}
+        <div
+          className="flex-1 bg-black relative overflow-hidden"
+          ref={galleryPaneRef}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          {currentImg?.url ? (
+            <img
+              ref={imgRef}
+              key={current}
+              src={currentImg.url}
+              alt=""
+              onMouseDown={handleMouseDown}
+              onClick={handleImgClick}
+              className={`absolute inset-0 w-full h-full select-none ${zoomed ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
+              style={{
+                objectFit: 'cover',
+                objectPosition: 'center',
+                transform: zoomed
+                  ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)`
+                  : 'scale(1) translate(0,0)',
+                transformOrigin: zoomed ? `${origin.x}% ${origin.y}%` : '50% 50%',
+                transition: dragging.current ? 'none' : 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)',
+                animation: 'galleryFadeIn 0.35s ease',
+                willChange: 'transform',
+              }}
+              draggable={false}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <IconPhoto className="w-16 h-16 text-gray-600 opacity-30" />
+            </div>
+          )}
+
+          {/* Full Screen button */}
+          {!zoomed && currentImg?.url && (
+            <button
+              onClick={enterFullscreen}
+              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <IconMaximize className="w-3.5 h-3.5" />
+              <span>Full Screen</span>
+            </button>
+          )}
+
+          {/* Zoom out button */}
+          {zoomed && (
+            <button
+              onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }) }}
+              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 text-white text-xs px-3 py-1.5 rounded-lg"
+            >
+              <IconMinimize className="w-3.5 h-3.5" /> Zoom out
+            </button>
+          )}
+
+          {/* Nav arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }}
+                disabled={current === 0}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <button
+                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }}
+                disabled={current === images.length - 1}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* RIGHT — thumbnails */}
+        <div className="w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
+          <div className="flex-1 overflow-y-auto p-3">
+            <div className="grid grid-cols-2 gap-2">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setCurrentIdx(i); setZoomed(false); setPan({ x: 0, y: 0 }) }}
+                  className={`aspect-square rounded-lg overflow-hidden transition-all ${
+                    i === current ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100' : 'opacity-70 hover:opacity-90'
+                  }`}
+                >
+                  {img.url ? (
+                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                      <IconPhoto className="w-6 h-6 text-gray-300" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`@keyframes galleryFadeIn { from{opacity:0} to{opacity:1} }`}</style>
+    </div>
+  )
+}
+
+// ── Airbnb-style Photo Grid ───────────────────────────────────────────────────
+function PhotoGrid({ images, onOpen }) {
+  // Show up to 5 slots: 1 large left + 2x2 right
+  const slots = [0, 1, 2, 3, 4]
+  const hasImages = images.length > 0
+
+  return (
+    <div className="relative mb-8">
+      <div className="grid grid-cols-2 gap-2 h-[340px] rounded-2xl overflow-hidden">
+
+        {/* Left — large main photo */}
+        <div
+          className="relative bg-gray-100 cursor-pointer overflow-hidden group"
+          onClick={() => onOpen(0)}
+        >
+          {images[0]?.url ? (
+            <img
+              src={images[0].url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <IconPhoto className="w-16 h-16 text-gray-300" />
+            </div>
+          )}
+        </div>
+
+        {/* Right — 2×2 grid */}
+        <div className="grid grid-cols-2 grid-rows-2 gap-2">
+          {[1, 2, 3, 4].map((slot, idx) => (
+            <div
+              key={slot}
+              className="relative bg-gray-100 cursor-pointer overflow-hidden group"
+              onClick={() => onOpen(hasImages ? Math.min(slot, images.length - 1) : 0)}
+            >
+              {images[slot]?.url ? (
+                <img
+                  src={images[slot].url}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <IconPhoto className="w-8 h-8 text-gray-300" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Show all photos button — bottom right, over the grid */}
+      {hasImages && (
+        <button
+          onClick={() => onOpen(0)}
+          className="absolute bottom-4 right-4 flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:shadow-md"
+        >
+          <IconGrid className="w-4 h-4" />
+          Show all photos
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+function PropertyMap({ address, city, state }) {
+  const query = encodeURIComponent(`${address ? address + ', ' : ''}${city}, ${state}`)
+  return (
+    <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="px-6 pt-5 pb-3 flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900">Location</h3>
+        <a href={`https://maps.google.com/?q=${query}`} target="_blank" rel="noopener noreferrer" className="text-xs text-stay-500 hover:underline">
+          Open in Maps ↗
+        </a>
+      </div>
+      <div className="h-56 w-full">
+        <iframe
+          title="Property location"
+          src={`https://maps.google.com/maps?q=${query}&output=embed&z=15`}
+          width="100%" height="100%"
+          style={{ border: 0 }}
+          allowFullScreen loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
+      <div className="px-6 py-3 text-sm text-gray-500 flex items-center gap-2 border-t">
+        <span>📍</span>
+        <span>{address ? `${address}, ` : ''}{city}, {state}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Availability Calendar ─────────────────────────────────────────────────────
+function AvailabilityCalendar({ minNights = 1, blockedDates = [], checkIn, checkOut, onChange }) {
+  const today = new Date(); today.setHours(0,0,0,0)
+  const [viewYear, setViewYear] = useState(today.getFullYear())
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [selecting, setSelecting] = useState('checkin')
+  const [hovered, setHovered] = useState(null)
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate()
+  const firstDayOfMonth = (y, m) => new Date(y, m, 1).getDay()
+  const toDate = (str) => str ? new Date(str + 'T00:00:00') : null
+  const toStr = (d) => d.toISOString().split('T')[0]
+  const ciDate = toDate(checkIn)
+  const coDate = toDate(checkOut)
+  const isBlocked = (d) => blockedDates.some(b => toStr(d) === b)
+  const isPast = (d) => d < today
+
+  const isInRange = (d) => {
+    const end = selecting === 'checkout' && hovered ? hovered : coDate
+    if (!ciDate || !end) return false
+    return d > ciDate && d < end
+  }
+
+  const handleDayClick = (d) => {
+    if (isPast(d) || isBlocked(d)) return
+    if (selecting === 'checkin') {
+      onChange({ checkIn: toStr(d), checkOut: '' }); setSelecting('checkout')
+    } else {
+      if (d <= ciDate) { onChange({ checkIn: toStr(d), checkOut: '' }); setSelecting('checkout') }
+      else { onChange({ checkIn, checkOut: toStr(d) }); setSelecting('checkin') }
+    }
+  }
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y-1) } else setViewMonth(m => m-1) }
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y+1) } else setViewMonth(m => m+1) }
+  const days = daysInMonth(viewYear, viewMonth)
+  const startPad = firstDayOfMonth(viewYear, viewMonth)
+
+  return (
+    <div className="border rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+        <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600">‹</button>
+        <span className="font-semibold text-sm text-gray-800">{monthNames[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600">›</button>
+      </div>
+      <div className="grid grid-cols-7 text-center border-b">
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} className="py-2 text-xs font-medium text-gray-400">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 text-center p-2 gap-y-1">
+        {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
+        {Array.from({ length: days }).map((_, i) => {
+          const d = new Date(viewYear, viewMonth, i + 1)
+          const str = toStr(d)
+          const past = isPast(d); const blocked = isBlocked(d)
+          const isCI = checkIn === str; const isCO = checkOut === str
+          const inRange = isInRange(d)
+          let cls = 'relative mx-auto w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all '
+          if (past || blocked) cls += 'text-gray-300 cursor-not-allowed line-through'
+          else if (isCI || isCO) cls += 'bg-stay-500 text-white font-bold cursor-pointer'
+          else if (inRange) cls += 'bg-stay-100 text-stay-700 cursor-pointer rounded-none'
+          else cls += 'hover:bg-gray-100 text-gray-700 cursor-pointer'
+          return (
+            <div key={str} className="flex items-center justify-center py-0.5">
+              <button className={cls} onClick={() => handleDayClick(d)} onMouseEnter={() => setHovered(d)} onMouseLeave={() => setHovered(null)} disabled={past || blocked}>
+                {i + 1}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+      <div className="px-4 py-2 border-t bg-gray-50 flex items-center gap-4 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-stay-500 inline-block" /> Selected</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-200 inline-block" /> Unavailable</span>
+        {minNights > 1 && <span>Min. {minNights} nights</span>}
+      </div>
+    </div>
+  )
+}
+
+// ── House Rules ───────────────────────────────────────────────────────────────
+function HouseRules({ rules }) {
+  const defaults = [
+    { icon: '🕐', label: 'Check-in',    value: 'After 3:00 PM'        },
+    { icon: '🕙', label: 'Checkout',    value: 'Before 11:00 AM'      },
+    { icon: '🚭', label: 'Smoking',     value: 'Not allowed'          },
+    { icon: '🐾', label: 'Pets',        value: 'Not allowed'          },
+    { icon: '🎉', label: 'Parties',     value: 'Not allowed'          },
+    { icon: '🔕', label: 'Quiet hours', value: '10:00 PM – 8:00 AM'  },
+  ]
+  const items = rules ?? defaults
+  return (
+    <div className="pb-6 border-b mb-6">
+      <h3 className="font-semibold text-gray-900 mb-4 text-lg">House rules</h3>
+      <div className="grid grid-cols-2 gap-3">
+        {items.map((r, i) => (
+          <div key={i} className="flex items-center gap-3 text-sm">
+            <span className="text-lg">{r.icon}</span>
+            <div>
+              <p className="text-gray-500 text-xs">{r.label}</p>
+              <p className="text-gray-800 font-medium">{r.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Similar Stays ─────────────────────────────────────────────────────────────
+function SimilarStays({ currentId, city }) {
+  const { data } = useSWR(
+    city ? `similar-${city}` : null,
+    () => getListings({ city, type: 'stays' }).then(r =>
+      (r.data ?? []).filter(l => String(l.id) !== String(currentId)).slice(0, 3)
+    )
+  )
+  if (!data?.length) return null
+  return (
+    <div className="mt-12 pt-8 border-t">
+      <h3 className="font-semibold text-gray-900 text-lg mb-6">Similar stays in {city}</h3>
+      <div className="grid grid-cols-3 gap-6">
+        {data.map(l => <StayCard key={l.id} listing={l} />)}
+      </div>
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function StayDetail() {
+  const { id } = useParams()
+  const { isSignedIn, user } = useUser()
+
+  const [checkIn, setCheckIn]   = useState('')
+  const [checkOut, setCheckOut] = useState('')
+  const [guests, setGuests]     = useState(1)
+  const [booking, setBooking]   = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [galleryOpen, setGalleryOpen]   = useState(false)
+  const [galleryStart, setGalleryStart] = useState(0)
+  const [useCalendar, setUseCalendar]   = useState(false)
+
+  useEffect(() => {
+    const ci = sessionStorage.getItem('stayCheckIn')
+    const co = sessionStorage.getItem('stayCheckOut')
+    const g  = sessionStorage.getItem('stayGuests')
+    if (ci) setCheckIn(ci)
+    if (co) setCheckOut(co)
+    if (g)  setGuests(parseInt(g))
+    sessionStorage.removeItem('stayCheckIn')
+    sessionStorage.removeItem('stayCheckOut')
+    sessionStorage.removeItem('stayGuests')
+  }, [])
+
+  const { data: listing, isLoading } = useSWR(
+    `stay-${id}`,
+    () => getListing(id).then(r => r.data)
+  )
+
+  const nights = checkIn && checkOut
+    ? Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000))
+    : 0
+
+  const subtotal    = nights * (listing?.price_per_night ?? 0)
+  const cleaningFee = 45
+  const serviceFee  = Math.round(subtotal * 0.12)
+  const total       = subtotal + cleaningFee + serviceFee
+
+  const cancellationDeadline = checkIn
+    ? new Date(new Date(checkIn).getTime() - 48 * 3600 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+    : null
+
+  const handleBook = async () => {
+    if (!checkIn || !checkOut) return toast.error('Please select dates first.')
+    if (nights < (listing?.min_nights ?? 1)) return toast.error(`Minimum stay is ${listing.min_nights} nights.`)
+    setBooking(true)
+    try {
+      const { data: newBooking } = await createBooking({
+        listing_id: id, user_id: user?.id,
+        full_name: user?.fullName ?? '',
+        email: user?.primaryEmailAddress?.emailAddress ?? '',
+        check_in: checkIn, check_out: checkOut, guests, nights,
+        price_per_night: listing.price_per_night,
+        subtotal, cleaning_fee: cleaningFee, service_fee: serviceFee,
+        total_price: total, status: 'pending', payment_status: 'pending',
+      })
+      const res = await fetch('/api/checkout-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_title: listing.title, total, nights, booking_id: newBooking.id }),
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      window.location.href = url
+    } catch (e) {
+      console.error(e); toast.error('Failed to process booking. Please try again.')
+    } finally {
+      setBooking(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try { await navigator.share({ title: listing?.title, url }); return } catch {}
+    }
+    await navigator.clipboard.writeText(url)
+    toast.success('Link copied to clipboard!')
+  }
+
+  const openGallery = (index = 0) => { setGalleryStart(index); setGalleryOpen(true) }
+
+  if (isLoading) return (
+    <div className="max-w-5xl mx-auto px-6 py-20">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-100 rounded w-2/3" />
+        <div className="h-[420px] bg-gray-100 rounded-2xl" />
+      </div>
+    </div>
+  )
+
+  if (!listing) return (
+    <div className="text-center py-20">
+      <p className="text-gray-500">Stay not found.</p>
+      <Link href="/stays" className="text-stay-500 mt-4 inline-block">← Back to stays</Link>
+    </div>
+  )
+
+  const { title, city, state, address, price_per_night, bedrooms, bathrooms,
+          sqft, type, description, amenities, min_nights, max_nights,
+          images = [], house_rules, blocked_dates = [] } = listing
+
+  return (
+    <div className="bg-white min-h-screen">
+
+      {galleryOpen && images.length > 0 && (
+        <PhotoGalleryModal
+          images={images}
+          startIndex={galleryStart}
+          onClose={() => setGalleryOpen(false)}
+        />
+      )}
+
+      <div className="max-w-5xl mx-auto px-6 py-6">
+
+        {/* Breadcrumb */}
+        <Link href="/stays" className="text-sm text-gray-500 hover:text-stay-500 mb-4 inline-block">
+          ← Back to stays
+        </Link>
+
+        {/* Title row + Share / Save */}
+        <div className="flex items-start justify-between mb-1 gap-4">
+          <h1 className="text-2xl font-bold text-gray-900 flex-1">{title}</h1>
+          <div className="flex items-center gap-2 shrink-0 mt-1">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            >
+              <IconShare className="w-4 h-4" /> Share
+            </button>
+            <button
+              onClick={() => {
+                if (!isSignedIn) return toast.error('Sign in to save stays.')
+                setSaved(s => !s)
+                toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥')
+              }}
+              className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
+                saved ? 'bg-red-50 border-red-200 text-red-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <IconHeart className={`w-4 h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500' : ''}`} />
+              {saved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-6 text-sm text-gray-500">
+          <span>⭐ 4.92 · 38 reviews</span>
+          <span>·</span>
+          <span>📍 {city}, {state}</span>
+          <span>·</span>
+          <span className="capitalize">{type}</span>
+        </div>
+
+        {/* Airbnb-style Photo Grid */}
+        <PhotoGrid images={images} onOpen={openGallery} />
+
+        <div className="flex gap-10">
+          {/* ── Left column ── */}
+          <div className="flex-1">
+
+            <div className="flex items-center justify-between pb-6 border-b mb-6">
+              <div>
+                <h2 className="font-semibold text-lg text-gray-900">
+                  {bedrooms === 0 ? 'Studio' : `${bedrooms} bedroom`} hosted by NestBridge
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  {bedrooms === 0 ? 'Studio' : `${bedrooms} bed${bedrooms > 1 ? 's' : ''}`} · {bathrooms} bath · {sqft} sqft
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-stay-500 flex items-center justify-center text-white font-bold text-lg">N</div>
+            </div>
+
+            <div className="space-y-4 pb-6 border-b mb-6">
+              {[
+                { icon: '✨', title: 'Entire space',   desc: "You'll have the whole place to yourself." },
+                { icon: '🔑', title: 'Self check-in',  desc: 'Check yourself in with a keypad.'         },
+                { icon: '⭐', title: 'Guest favourite', desc: 'One of the most loved stays in the area.' },
+              ].map(h => (
+                <div key={h.title} className="flex gap-4">
+                  <span className="text-2xl">{h.icon}</span>
+                  <div>
+                    <p className="font-medium text-gray-900">{h.title}</p>
+                    <p className="text-sm text-gray-500">{h.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pb-6 border-b mb-6">
+              <p className="text-gray-700 leading-relaxed">{description}</p>
+              {min_nights > 1 && (
+                <p className="text-sm text-gray-500 mt-3">
+                  Minimum stay: {min_nights} nights · Maximum: {max_nights} nights
+                </p>
+              )}
+            </div>
+
+            <div className="pb-6 border-b mb-6">
+              <h3 className="font-semibold text-gray-900 mb-4 text-lg">What this place offers</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {(amenities ?? []).map(a => (
+                  <div key={a} className="flex items-center gap-3 text-sm text-gray-700">
+                    <span className="text-gray-400">✓</span>{a}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pb-6 border-b mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 text-lg">
+                  {nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Select dates'}
+                </h3>
+                <button onClick={() => setUseCalendar(v => !v)} className="text-xs text-stay-500 hover:underline">
+                  {useCalendar ? 'Use text inputs instead' : 'Use calendar instead'}
+                </button>
+              </div>
+              {useCalendar ? (
+                <AvailabilityCalendar
+                  minNights={min_nights}
+                  blockedDates={blocked_dates}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onChange={({ checkIn: ci, checkOut: co }) => { setCheckIn(ci); setCheckOut(co) }}
+                />
+              ) : (
+                <div className="border rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-2">
+                    <div className="p-3 border-r">
+                      <p className="text-xs font-bold text-gray-700 mb-1">CHECK-IN</p>
+                      <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
+                    </div>
+                    <div className="p-3">
+                      <p className="text-xs font-bold text-gray-700 mb-1">CHECKOUT</p>
+                      <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {nights > 0 && checkIn && checkOut && (
+                <p className="text-xs text-gray-400 mt-2">
+                  {new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(checkOut).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              )}
+            </div>
+
+            <HouseRules rules={house_rules} />
+
+            <div className="pb-6 border-b mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3 text-lg">Cancellation policy</h3>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="font-medium text-green-800 text-sm mb-1">
+                  ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ' up to 48 hours before check-in'}
+                </p>
+                <p className="text-green-700 text-xs leading-relaxed">
+                  Cancel before check-in for a full refund. After that, the first night and service fee are non-refundable.
+                </p>
+              </div>
+            </div>
+
+            <div className="pb-6 border-b mb-6">
+              <PropertyMap address={address} city={city} state={state} />
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 text-lg mb-6">Reviews</h3>
+              <ReviewsSection listingId={id} />
+            </div>
+          </div>
+
+          {/* ── Right — booking card ── */}
+          <div className="w-80 shrink-0">
+            <div className="border rounded-2xl p-6 sticky top-24 shadow-lg">
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-2xl font-bold text-gray-900">${price_per_night}</span>
+                <span className="text-gray-500">/ night</span>
+              </div>
+
+              <p className="text-xs text-green-600 font-medium mb-4">
+                ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}
+              </p>
+
+              <div className="border rounded-xl overflow-hidden mb-3">
+                <div className="grid grid-cols-2">
+                  <div className="p-3 border-r">
+                    <p className="text-xs font-bold text-gray-700 mb-1">CHECK-IN</p>
+                    <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
+                  </div>
+                  <div className="p-3">
+                    <p className="text-xs font-bold text-gray-700 mb-1">CHECKOUT</p>
+                    <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
+                  </div>
+                </div>
+                <div className="border-t p-3">
+                  <p className="text-xs font-bold text-gray-700 mb-1">GUESTS</p>
+                  <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="text-sm text-gray-700 outline-none w-full">
+                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {isSignedIn ? (
+                <button
+                  onClick={handleBook}
+                  disabled={booking}
+                  className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold hover:bg-stay-600 transition-colors disabled:opacity-50 mb-3"
+                >
+                  {booking ? 'Confirming...' : nights > 0 ? `Reserve · $${total.toLocaleString()}` : 'Reserve'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn)
+                    if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut)
+                    sessionStorage.setItem('stayGuests', guests.toString())
+                    window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`
+                  }}
+                  className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold mb-3"
+                >
+                  Sign in to Reserve
+                </button>
+              )}
+
+              <p className="text-xs text-gray-400 text-center mb-4">You won't be charged yet</p>
+
+              {nights > 0 && (
+                <div className="space-y-2 text-sm border-t pt-4">
+                  <div className="flex justify-between text-gray-600">
+                    <span>${price_per_night} × {nights} night{nights > 1 ? 's' : ''}</span>
+                    <span>${subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600"><span>Cleaning fee</span><span>${cleaningFee}</span></div>
+                  <div className="flex justify-between text-gray-600"><span>Service fee</span><span>${serviceFee}</span></div>
+                  <div className="flex justify-between font-bold pt-2 border-t text-gray-900">
+                    <span>Total</span><span>${total.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-4">
+                <button onClick={handleShare} className="flex-1 text-xs text-gray-500 hover:text-gray-700 border rounded-lg py-2 hover:bg-gray-50 transition-colors">
+                  ↑ Share
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isSignedIn) return toast.error('Sign in to save stays.')
+                    setSaved(s => !s)
+                    toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥')
+                  }}
+                  className={`flex-1 text-xs border rounded-lg py-2 transition-colors ${saved ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                >
+                  {saved ? '♥ Saved' : '♡ Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <SimilarStays currentId={id} city={city} />
+      </div>
+    </div>
+  )
+}
