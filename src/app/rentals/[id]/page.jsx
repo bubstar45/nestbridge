@@ -70,7 +70,6 @@ const ROOM_ICON_MAP = {
   other:    IconPhoto,
 }
 
-// Living room first, exterior near end — smarter auto-assignment
 const AUTO_CATEGORIES = ['living', 'kitchen', 'bedroom', 'bathroom', 'bedroom', 'exterior', 'backyard', 'other']
 
 function getCategory(img, idx) {
@@ -110,7 +109,7 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
   if (images.length === 0) return null
 
   return (
-    <div className="relative h-[480px] w-full overflow-hidden rounded-2xl bg-gray-900 group">
+    <div className="relative h-[280px] sm:h-[380px] md:h-[480px] w-full overflow-hidden rounded-2xl bg-gray-900 group">
 
       <style>{`
         @keyframes kenburns-zoom-in  { from{transform:scale(1) translate(0,0)}         to{transform:scale(1.12) translate(-1%,-1%)} }
@@ -121,7 +120,6 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
         .kb-slide { animation-duration:5.2s; animation-timing-function:ease-in-out; animation-fill-mode:both; will-change:transform; }
       `}</style>
 
-      {/* All slides stacked — CSS opacity transition, no re-mount = no blink */}
       {images.map((img, i) => (
         <div
           key={i}
@@ -147,49 +145,33 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
         </div>
       ))}
 
-      {/* Dark gradient overlay */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-      {/* Nav arrows */}
       {images.length > 1 && (
         <>
-          <button
-            onClick={(e) => { e.stopPropagation(); goPrev() }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow text-gray-800 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-            aria-label="Previous photo"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+          <button onClick={(e) => { e.stopPropagation(); goPrev() }}
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow text-gray-800 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); goNext() }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow text-gray-800 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-            aria-label="Next photo"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+          <button onClick={(e) => { e.stopPropagation(); goNext() }}
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow text-gray-800 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
           </button>
         </>
       )}
 
-      {/* Bottom bar — dots + see all photos */}
-      <div className="absolute bottom-4 left-0 right-0 z-20 flex items-center justify-between px-5">
+      <div className="absolute bottom-3 left-0 right-0 z-20 flex items-center justify-between px-3 sm:px-5">
         <div className="flex gap-1.5">
           {images.slice(0, 8).map((_, i) => (
-            <button
-              key={i}
-              onClick={(e) => { e.stopPropagation(); goTo(i) }}
-              className={`h-1.5 rounded-full transition-all ${
-                i === current ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
-              }`}
-            />
+            <button key={i} onClick={(e) => { e.stopPropagation(); goTo(i) }}
+              className={`h-1.5 rounded-full transition-all ${i === current ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`} />
           ))}
           {images.length > 8 && <span className="text-white/60 text-xs ml-1">+{images.length - 8}</span>}
         </div>
 
-        <button
-          onClick={() => onOpenGallery(0)}
-          className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full transition-all border border-white/30"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onClick={() => onOpenGallery(0)}
+          className="flex items-center gap-1 sm:gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all border border-white/30">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={1.8}/>
             <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={1.8}/>
             <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={1.8}/>
@@ -206,8 +188,8 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
 function PhotoGalleryModal({ images, startIndex, onClose }) {
   const [current, setCurrentIdx] = useState(startIndex)
   const [zoomed, setZoomed]      = useState(false)
-  const [origin, setOrigin]      = useState({ x: 50, y: 50 })   // transform-origin in %
-  const [pan, setPan]            = useState({ x: 0, y: 0 })     // translate offset in px
+  const [origin, setOrigin]      = useState({ x: 50, y: 50 })
+  const [pan, setPan]            = useState({ x: 0, y: 0 })
   const dragging                 = useRef(false)
   const dragStart                = useRef({ mx: 0, my: 0, px: 0, py: 0 })
   const galleryPaneRef           = useRef(null)
@@ -221,15 +203,13 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
     else if (el.mozRequestFullScreen)    el.mozRequestFullScreen()
   }
 
-  // Reset zoom/pan when switching photos
   useEffect(() => { setZoomed(false); setPan({ x: 0, y: 0 }) }, [current])
 
   const handleImgClick = (e) => {
-    // Ignore if we just finished dragging
     if (dragging.wasDrag) { dragging.wasDrag = false; return }
     const rect = e.currentTarget.getBoundingClientRect()
-    const ox = ((e.clientX - rect.left) / rect.width)  * 100
-    const oy = ((e.clientY - rect.top)  / rect.height) * 100
+    const ox = ((e.clientX - rect.left) / rect.width) * 100
+    const oy = ((e.clientY - rect.top) / rect.height) * 100
     if (zoomed) {
       setZoomed(false)
       setPan({ x: 0, y: 0 })
@@ -256,18 +236,14 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
   }
   const handleMouseUp = () => { dragging.current = false }
 
-  const [saved, setSaved]       = useState(false)
-  const [copied, setCopied]     = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
     const url = window.location.href
     if (navigator.share) {
-      try {
-        await navigator.share({ title: document.title, url })
-        return
-      } catch (_) { /* user cancelled or not supported — fall through */ }
+      try { await navigator.share({ title: document.title, url }); return } catch (_) {}
     }
-    // Fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
@@ -287,152 +263,76 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
   }, [onClose, zoomed, images.length])
 
   const currentImg = images[current]
-  const roomLabel  = currentImg
-    ? (ROOM_CATEGORIES.find(c => c.key === getCategory(currentImg, current))?.label ?? 'Photo')
-    : ''
+  const roomLabel = currentImg ? (ROOM_CATEGORIES.find(c => c.key === getCategory(currentImg, current))?.label ?? 'Photo') : ''
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
-          <span className="text-sm text-gray-500">
-            {current + 1} of {images.length} photos
-          </span>
+          <span className="text-xs sm:text-sm text-gray-500">{current + 1} of {images.length} photos</span>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-          >
-            <IconShare className="w-4 h-4" />
-            {copied ? 'Copied!' : 'Share'}
+        <div className="flex gap-1 sm:gap-2">
+          <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 hover:bg-gray-50">
+            <IconShare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
           </button>
-          <button
-            onClick={() => setSaved(s => !s)}
-            className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
-              saved
-                ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
-          >
-            <IconHeart className={`w-4 h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500 scale-110' : ''}`} />
-            {saved ? 'Saved' : 'Save'}
+          <button onClick={() => setSaved(s => !s)} className={`flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition-colors ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
+            <IconHeart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500 scale-110' : ''}`} />
+            <span className="hidden sm:inline">{saved ? 'Saved' : 'Save'}</span>
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* LEFT — main photo */}
-        <div
-          className="flex-1 bg-black relative overflow-hidden"
-          ref={galleryPaneRef}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <div className="flex-1 bg-black relative overflow-hidden" ref={galleryPaneRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
           {currentImg?.url ? (
-            <img
-              ref={imgRef}
-              key={current}
-              src={currentImg.url}
-              alt=""
-              onMouseDown={handleMouseDown}
-              onClick={handleImgClick}
-              className={`absolute inset-0 w-full h-full select-none ${
-                zoomed ? 'object-cover cursor-grab active:cursor-grabbing' : 'object-cover cursor-zoom-in'
-              }`}
+            <img ref={imgRef} key={current} src={currentImg.url} alt="" onMouseDown={handleMouseDown} onClick={handleImgClick}
+              className={`absolute inset-0 w-full h-full select-none ${zoomed ? 'object-cover cursor-grab active:cursor-grabbing' : 'object-cover cursor-zoom-in'}`}
               style={{
-                transform: zoomed
-                  ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)`
-                  : 'scale(1) translate(0,0)',
+                transform: zoomed ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)` : 'scale(1) translate(0,0)',
                 transformOrigin: zoomed ? `${origin.x}% ${origin.y}%` : '50% 50%',
                 transition: dragging.current ? 'none' : 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)',
                 animation: 'galleryFadeIn 0.35s ease',
                 willChange: 'transform',
               }}
-              draggable={false}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <IconPhoto className="w-16 h-16 text-gray-600 opacity-30" />
-            </div>
-          )}
+              draggable={false} />
+          ) : (<div className="flex items-center justify-center h-full"><IconPhoto className="w-16 h-16 text-gray-600 opacity-30" /></div>)}
 
-          {/* Full Screen button — top right */}
           {!zoomed && currentImg?.url && (
-            <button
-              onClick={enterFullscreen}
-              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <IconMaximize className="w-3.5 h-3.5" />
-              <span>Full Screen</span>
+            <button onClick={enterFullscreen} className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5 bg-black/50 hover:bg-black/70 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+              <IconMaximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Full Screen</span>
             </button>
           )}
-
-          {/* Zoom out button */}
           {zoomed && (
-            <button
-              onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }) }}
-              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 text-white text-xs px-3 py-1.5 rounded-lg"
-            >
-              <IconMinimize className="w-3.5 h-3.5" /> Zoom out
+            <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }) }} className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5 bg-black/50 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+              <IconMinimize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Zoom out
             </button>
           )}
-
-          {/* Nav arrows */}
           {images.length > 1 && (
             <>
-              <button
-                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }}
-                disabled={current === 0}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }} disabled={current === 0}
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
               </button>
-              <button
-                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }}
-                disabled={current === images.length - 1}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }} disabled={current === images.length - 1}
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
               </button>
             </>
           )}
-
         </div>
 
-        {/* RIGHT — thumbnail grid only */}
-        <div className="w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
-          {/* Thumbnails — start from top, no category filter */}
+        <div className="w-full md:w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 gap-2">
               {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setCurrentIdx(i); setZoomed(false) }}
-                  className={`aspect-square rounded-lg overflow-hidden transition-all ${
-                    i === current
-                      ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100'
-                      : 'opacity-70 hover:opacity-90'
-                  }`}
-                >
-                  {img.url ? (
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <IconPhoto className="w-6 h-6 text-gray-300" />
-                    </div>
-                  )}
+                <button key={i} onClick={() => { setCurrentIdx(i); setZoomed(false) }}
+                  className={`aspect-square rounded-lg overflow-hidden transition-all ${i === current ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100' : 'opacity-70 hover:opacity-90'}`}>
+                  {img.url ? (<img src={img.url} alt="" className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gray-100 flex items-center justify-center"><IconPhoto className="w-6 h-6 text-gray-300" /></div>)}
                 </button>
               ))}
             </div>
@@ -447,21 +347,21 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
 
 // ── Map ───────────────────────────────────────────────────────────────────────
 function PropertyMap({ address, city, state }) {
-  const query    = encodeURIComponent(`${address ? address + ', ' : ''}${city}, ${state}`)
+  const query = encodeURIComponent(`${address ? address + ', ' : ''}${city}, ${state}`)
   const embedUrl = `https://maps.google.com/maps?q=${query}&output=embed&z=15`
 
   return (
     <div className="bg-white rounded-xl border overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Location</h3>
+      <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Location</h3>
         <a href={`https://maps.google.com/?q=${query}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-500 hover:underline">
           Open in Maps ↗
         </a>
       </div>
-      <div className="h-56 w-full">
+      <div className="h-48 sm:h-56 w-full">
         <iframe title="Property location" src={embedUrl} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       </div>
-      <div className="px-6 py-3 text-sm text-gray-500 flex items-center gap-2 border-t">
+      <div className="px-4 sm:px-6 py-3 text-xs sm:text-sm text-gray-500 flex items-center gap-2 border-t">
         <span>📍</span>
         <span>{address ? `${address}, ` : ''}{city}, {state}</span>
       </div>
@@ -471,17 +371,14 @@ function PropertyMap({ address, city, state }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RentalDetail() {
-  const { id }         = useParams()
-  const router         = useRouter()
+  const { id } = useParams()
+  const router = useRouter()
   const { isSignedIn } = useUser()
-  const [applying, setApplying]         = useState(false)
-  const [galleryOpen, setGalleryOpen]   = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryStart, setGalleryStart] = useState(0)
 
-  const { data: listing, isLoading } = useSWR(
-    `listing-${id}`,
-    () => getListing(id).then(r => r.data)
-  )
+  const { data: listing, isLoading } = useSWR(`listing-${id}`, () => getListing(id).then(r => r.data))
 
   const handleApply = () => router.push(`/apply/${id}`)
 
@@ -491,9 +388,9 @@ export default function RentalDetail() {
   }
 
   if (isLoading) return (
-    <div className="max-w-5xl mx-auto px-6 py-20 text-center">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
       <div className="animate-pulse space-y-4">
-        <div className="h-[480px] bg-gray-100 rounded-2xl" />
+        <div className="h-[280px] sm:h-[380px] md:h-[480px] bg-gray-100 rounded-2xl" />
         <div className="h-8 bg-gray-100 rounded w-1/2 mx-auto" />
         <div className="h-4 bg-gray-100 rounded w-1/3 mx-auto" />
       </div>
@@ -501,89 +398,74 @@ export default function RentalDetail() {
   )
 
   if (!listing) return (
-    <div className="text-center py-20">
+    <div className="text-center py-20 px-4">
       <p className="text-gray-500">Listing not found.</p>
       <Link href="/rentals" className="text-brand-500 mt-4 inline-block">← Back to rentals</Link>
     </div>
   )
 
-  const { title, city, state, address, price, bedrooms, bathrooms, sqft,
-          type, description, amenities, available_from, images = [] } = listing
-
+  const { title, city, state, address, price, bedrooms, bathrooms, sqft, type, description, amenities, available_from, images = [] } = listing
   const moveInCost = price * 2
 
   const displayImages = images.length > 0 ? images : [
-    { url: null, category: 'living'  },
-    { url: null, category: 'kitchen' },
-    { url: null, category: 'bedroom' },
+    { url: null, category: 'living' }, { url: null, category: 'kitchen' }, { url: null, category: 'bedroom' },
   ]
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      {galleryOpen && (<PhotoGalleryModal images={displayImages} startIndex={galleryStart} onClose={() => setGalleryOpen(false)} />)}
 
-      {galleryOpen && (
-        <PhotoGalleryModal
-          images={displayImages}
-          startIndex={galleryStart}
-          onClose={() => setGalleryOpen(false)}
-        />
-      )}
-
-      <div className="max-w-5xl mx-auto px-6 py-4">
-        <Link href="/rentals" className="text-sm text-gray-500 hover:text-brand-500">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <Link href="/rentals" className="text-xs sm:text-sm text-gray-500 hover:text-brand-500">
           ← Back to rentals
         </Link>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mb-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6 sm:mb-8">
         {displayImages.some(img => img.url) ? (
           <KenBurnsSlideshow images={displayImages} onOpenGallery={openGallery} />
         ) : (
-          <div
-            className="h-[480px] bg-gradient-to-br from-brand-50 to-brand-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden"
-            onClick={() => openGallery(0)}
-          >
-            <span className="text-9xl mb-4">{TYPE_ICONS[type] ?? '🏠'}</span>
-            <p className="text-brand-400 text-sm font-medium">No photos yet</p>
-            <div className="absolute bottom-4 left-4 flex gap-2">
-              <span className="bg-white text-xs px-3 py-1.5 rounded-full capitalize font-medium shadow text-gray-700">{type}</span>
-              <span className="bg-brand-500 text-white text-xs px-3 py-1.5 rounded-full font-medium">For Rent</span>
+          <div className="h-[280px] sm:h-[380px] md:h-[480px] bg-gradient-to-br from-brand-50 to-brand-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden" onClick={() => openGallery(0)}>
+            <span className="text-7xl sm:text-9xl mb-2 sm:mb-4">{TYPE_ICONS[type] ?? '🏠'}</span>
+            <p className="text-brand-400 text-xs sm:text-sm font-medium">No photos yet</p>
+            <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 flex gap-2">
+              <span className="bg-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full capitalize font-medium shadow text-gray-700">{type}</span>
+              <span className="bg-brand-500 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full font-medium">For Rent</span>
             </div>
           </div>
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 pb-12 flex gap-8">
-
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12 flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* Left column */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">{title}</h1>
-          <p className="text-gray-500 mb-6">📍 {address ? `${address}, ` : ''}{city}, {state}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{title}</h1>
+          <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6 break-words">📍 {address ? `${address}, ` : ''}{city}, {state}</p>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
             {[
-              { label: 'Bedrooms',    value: bedrooms,               icon: '🛏' },
-              { label: 'Bathrooms',   value: bathrooms,              icon: '🚿' },
+              { label: 'Bedrooms', value: bedrooms, icon: '🛏' },
+              { label: 'Bathrooms', value: bathrooms, icon: '🚿' },
               { label: 'Square Feet', value: sqft?.toLocaleString(), icon: '📐' },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border p-4 text-center">
-                <div className="text-2xl mb-1">{s.icon}</div>
-                <div className="font-bold text-gray-900">{s.value}</div>
-                <div className="text-xs text-gray-500">{s.label}</div>
+              <div key={s.label} className="bg-white rounded-xl border p-2 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{s.icon}</div>
+                <div className="font-bold text-gray-900 text-sm sm:text-base">{s.value}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500">{s.label}</div>
               </div>
             ))}
           </div>
 
-          <div className="bg-white rounded-xl border p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3">About this rental</h3>
-            <p className="text-gray-600 leading-relaxed">{description}</p>
+          <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-base sm:text-lg">About this rental</h3>
+            <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{description}</p>
           </div>
 
-          <div className="bg-white rounded-xl border p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Amenities</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Amenities</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {(amenities ?? []).map((a) => (
-                <div key={a} className="flex items-center gap-2 text-sm text-gray-700">
+                <div key={a} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                   <span className="text-green-500 font-bold">✓</span> {a}
                 </div>
               ))}
@@ -594,76 +476,71 @@ export default function RentalDetail() {
             <PropertyMap address={address} city={city} state={state} />
           </div>
 
-          <div className="bg-white rounded-xl border p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Estimated Move-in Costs</h3>
-            <div className="space-y-3">
+          <div className="bg-white rounded-xl border p-4 sm:p-6">
+            <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Estimated Move-in Costs</h3>
+            <div className="space-y-2 sm:space-y-3">
               {[
-                { label: "First month's rent",      amount: price },
+                { label: "First month's rent", amount: price },
                 { label: 'Security deposit (est.)', amount: price },
-                { label: 'Application fee',          amount: 50   },
+                { label: 'Application fee', amount: 50 },
               ].map(item => (
-                <div key={item.label} className="flex justify-between text-sm">
+                <div key={item.label} className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gray-600">{item.label}</span>
                   <span className="font-medium text-gray-900">${item.amount?.toLocaleString()}</span>
                 </div>
               ))}
-              <div className="border-t pt-3 flex justify-between font-semibold">
+              <div className="border-t pt-2 sm:pt-3 flex justify-between font-semibold text-sm sm:text-base">
                 <span>Estimated total</span>
                 <span className="text-brand-500">${(moveInCost + 50)?.toLocaleString()}</span>
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3">
               * Security deposit may vary. Application fee is refundable if not approved within 7 days.
             </p>
           </div>
         </div>
 
         {/* Right — apply card */}
-        <div className="w-80 shrink-0">
-          <div className="bg-white border rounded-2xl p-6 sticky top-24 shadow-sm">
-            <div className="mb-4">
-              <span className="text-3xl font-bold text-brand-500">${price?.toLocaleString()}</span>
-              <span className="text-gray-400 text-base">/month</span>
+        <div className="w-full lg:w-80 shrink-0">
+          <div className="bg-white border rounded-2xl p-4 sm:p-6 sticky top-24 shadow-sm">
+            <div className="mb-3 sm:mb-4">
+              <span className="text-2xl sm:text-3xl font-bold text-brand-500">${price?.toLocaleString()}</span>
+              <span className="text-gray-400 text-sm sm:text-base">/month</span>
             </div>
 
             {available_from && (
-              <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 bg-gray-50 rounded-lg p-2 sm:p-3">
                 <span>📅</span>
                 <span>Available {new Date(available_from).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
             )}
 
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg mb-5 leading-relaxed">
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] sm:text-xs p-2 sm:p-3 rounded-lg mb-4 sm:mb-5 leading-relaxed">
               <strong>$50 application fee</strong> — Covers credit & background check. Fully refundable if not approved within 7 days.
             </div>
 
-            <div className="mb-5 space-y-2">
+            <div className="mb-4 sm:mb-5 space-y-2">
               {['Submit your application', 'We review within 24 hours', 'Get approved & sign lease'].map((step, i) => (
-                <div key={step} className="flex items-center gap-3 text-xs text-gray-600">
-                  <span className="w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                <div key={step} className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-600">
+                  <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0">{i + 1}</span>
                   {step}
                 </div>
               ))}
             </div>
 
             {isSignedIn ? (
-              <button
-                onClick={handleApply}
-                disabled={applying}
-                className="w-full py-3 bg-brand-500 text-white rounded-xl font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors"
-              >
+              <button onClick={handleApply} disabled={applying}
+                className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 disabled:opacity-50 transition-colors">
                 {applying ? 'Submitting...' : 'Apply Now'}
               </button>
             ) : (
-              <button
-                onClick={() => { window.location.href = `/sign-in?redirect_url=${encodeURIComponent(`/apply/${id}`)}` }}
-                className="w-full py-3 bg-brand-500 text-white rounded-xl font-semibold hover:bg-brand-600 transition-colors"
-              >
+              <button onClick={() => { window.location.href = `/sign-in?redirect_url=${encodeURIComponent(`/apply/${id}`)}` }}
+                className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 transition-colors">
                 Sign in to Apply
               </button>
             )}
 
-            <p className="text-xs text-gray-400 text-center mt-3">No commitment until approved</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 text-center mt-2 sm:mt-3">No commitment until approved</p>
           </div>
         </div>
       </div>
