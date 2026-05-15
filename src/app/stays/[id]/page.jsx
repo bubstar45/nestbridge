@@ -810,34 +810,39 @@ export default function StayDetail() {
         </div>
       )}
 
-            {/* Date picker modal */}
+            {/* Date picker - compact popup */}
       {showDatePicker && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col lg:hidden" onClick={() => setShowDatePicker(false)}>
-          <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Select dates</h3>
-            <button onClick={() => setShowDatePicker(false)} className="text-gray-400 text-xl">✕</button>
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowDatePicker(false)} />
+          {/* Calendar popup */}
+          <div className="fixed bottom-24 left-3 right-3 z-50 bg-white rounded-2xl shadow-xl border max-h-[70vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 text-sm">Select dates</h3>
+              <button onClick={() => setShowDatePicker(false)} className="text-gray-400 text-lg">✕</button>
+            </div>
+            <div className="p-3">
+              <AvailabilityCalendar 
+                minNights={min_nights} 
+                blockedDates={blocked_dates} 
+                checkIn={checkIn} 
+                checkOut={checkOut} 
+                onChange={({ checkIn: ci, checkOut: co }) => { 
+                  setCheckIn(ci); 
+                  setCheckOut(co); 
+                }} 
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t p-3">
+              <button 
+                onClick={() => setShowDatePicker(false)} 
+                className="w-full py-2 bg-stay-500 text-white rounded-xl font-semibold text-sm"
+              >
+                Done
+              </button>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
-            <AvailabilityCalendar 
-              minNights={min_nights} 
-              blockedDates={blocked_dates} 
-              checkIn={checkIn} 
-              checkOut={checkOut} 
-              onChange={({ checkIn: ci, checkOut: co }) => { 
-                setCheckIn(ci); 
-                setCheckOut(co); 
-              }} 
-            />
-          </div>
-          <div className="sticky bottom-0 bg-white border-t p-4">
-            <button 
-              onClick={() => setShowDatePicker(false)} 
-              className="w-full py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm"
-            >
-              Done
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )
