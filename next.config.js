@@ -1,8 +1,4 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: false,
-  },
   images: {
     domains: [
       'nestbridge-photos.s3.us-east-1.amazonaws.com',
@@ -18,4 +14,5 @@ const nextConfig = {
     ]
   },
 }
+
 module.exports = nextConfig
