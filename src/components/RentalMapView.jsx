@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/RentalMapView.jsx << 'ENDOFFILE'
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import 'leaflet/dist/leaflet.css'
