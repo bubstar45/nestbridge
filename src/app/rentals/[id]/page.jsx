@@ -568,7 +568,7 @@ export default function RentalDetail() {
                 disabled={applying}
                 className="px-6 py-2.5 bg-brand-500 text-white rounded-xl font-semibold text-sm hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-md"
               >
-                {applying ? '...' : 'Apply — $50'}
+                {applying ? '...' : 'Apply'}
               </button>
             ) : (
               <button
