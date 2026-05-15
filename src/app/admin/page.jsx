@@ -104,16 +104,23 @@ function BookingDetail({ booking, onClose }) {
 }
 
 // ── Mobile Card Components ─────────────────────────────────
-function ApplicationCard({ app, onClick }) {
+function ApplicationCard({ app, onClick, onApprove, onDeny }) {
   const STATUS_COLOR = { pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', denied: 'bg-red-100 text-red-700' }
   return (
-    <div onClick={() => onClick(app)} className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer active:bg-gray-50">
-      <div className="flex justify-between items-start mb-2">
-        <div><p className="font-semibold text-gray-900">{app.full_name || '—'}</p><p className="text-xs text-gray-400">{app.email || '—'}</p></div>
-        <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${STATUS_COLOR[app.status] || 'bg-gray-100 text-gray-600'}`}>{app.status || 'pending'}</span>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer active:bg-gray-50">
+      <div onClick={() => onClick(app)} className="cursor-pointer">
+        <div className="flex justify-between items-start mb-2">
+          <div><p className="font-semibold text-gray-900">{app.full_name || '—'}</p><p className="text-xs text-gray-400">{app.email || '—'}</p></div>
+          <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${STATUS_COLOR[app.status] || 'bg-gray-100 text-gray-600'}`}>{app.status || 'pending'}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs mb-2"><span className="text-gray-500">Listing:</span><span className="text-gray-700 truncate">{app.listings?.title || '—'}</span><span className="text-gray-500">Date:</span><span className="text-gray-700">{app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}</span><span className="text-gray-500">Income:</span><span className="text-gray-700">{app.monthly_income ? `$${Number(app.monthly_income).toLocaleString()}/mo` : '—'}</span></div>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-xs mb-2"><span className="text-gray-500">Listing:</span><span className="text-gray-700 truncate">{app.listings?.title || '—'}</span><span className="text-gray-500">Date:</span><span className="text-gray-700">{app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}</span><span className="text-gray-500">Income:</span><span className="text-gray-700">{app.monthly_income ? `$${Number(app.monthly_income).toLocaleString()}/mo` : '—'}</span></div>
-      {app.status === 'pending' && (<div className="flex gap-2 mt-2"><button onClick={(e) => { e.stopPropagation(); decide(app.id, 'approved') }} className="flex-1 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium">Approve</button><button onClick={(e) => { e.stopPropagation(); decide(app.id, 'denied') }} className="flex-1 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium">Deny</button></div>)}
+      {app.status === 'pending' && (
+        <div className="flex gap-2 mt-2">
+          <button onClick={(e) => { e.stopPropagation(); onApprove(app.id) }} className="flex-1 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium">Approve</button>
+          <button onClick={(e) => { e.stopPropagation(); onDeny(app.id) }} className="flex-1 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium">Deny</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -202,7 +209,7 @@ export default function AdminPage() {
       {tab === 'applications' && (
         <div>
           <div className="block lg:hidden">
-            {apps.length === 0 ? (<div className="text-center py-16 text-gray-400"><p className="text-3xl mb-2">📋</p><p>No applications yet.</p></div>) : (apps.map(a => <ApplicationCard key={a.id} app={a} onClick={setSelectedApp} />))}
+            {apps.length === 0 ? (<div className="text-center py-16 text-gray-400"><p className="text-3xl mb-2">📋</p><p>No applications yet.</p></div>) : (apps.map(a => <ApplicationCard key={a.id} app={a} onClick={setSelectedApp} onApprove={(id) => decide(id, 'approved')} onDeny={(id) => decide(id, 'denied')} />))}
           </div>
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
@@ -225,7 +232,8 @@ export default function AdminPage() {
           </div>
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm"><thead><tr className="text-left text-gray-400 border-b">{['Title', 'Location', 'Price', 'Type', 'Mode', 'Actions'].map(h => <th key={h} className="py-2 pr-4">{h}</th>)}</tr></thead>
-            <tbody>{listings.map(l => (<tr key={l.id} className="border-b hover:bg-gray-50"><td className="py-3 pr-4 font-medium">{l.title}</td><td className="py-3 pr-4 text-gray-400">{l.city}, {l.state}</td><td className="py-3 pr-4">{l.price ? `$${l.price.toLocaleString()}/mo` : `$${l.price_per_night}/night`}</td><td className="py-3 pr-4 capitalize">{l.type}</td><td className="py-3 pr-4"><span className={`px-2 py-1 text-xs rounded-full font-medium ${l.listing_mode === 'rental' ? 'bg-brand-50 text-brand-700' : 'bg-orange-50 text-orange-700'}`}>{l.listing_mode === 'rental' ? 'Rental' : 'Short Stay'}</span></td><td className="py-3 flex gap-2"><a href={`/admin/listings/${l.id}/edit`} className="px-3 py-1 text-xs border rounded-lg hover:bg-gray-50">Edit</a><button onClick={() => setDeleteTarget(l)} className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg">Delete</button></td></tr>))}</tbody></table>
+            <tbody>{listings.map(l => (<tr key={l.id} className="border-b hover:bg-gray-50"><td className="py-3 pr-4 font-medium">{l.title}</td><td className="py-3 pr-4 text-gray-400">{l.city}, {l.state}</td><td className="py-3 pr-4">{l.price ? `$${l.price.toLocaleString()}/mo` : `$${l.price_per_night}/night`}</td><td className="py-3 pr-4 capitalize">{l.type}</td><td className="py-3 pr-4"><span className={`px-2 py-1 text-xs rounded-full font-medium ${l.listing_mode === 'rental' ? 'bg-brand-50 text-brand-700' : 'bg-orange-50 text-orange-700'}`}>{l.listing_mode === 'rental' ? 'Rental' : 'Short Stay'}</span></td><td className="py-3 flex gap-2"><a href={`/admin/listings/${l.id}/edit`} className="px-3 py-1 text-xs border rounded-lg hover:bg-gray-50">Edit</a><button onClick={() => setDeleteTarget(l)} className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg">Delete</button></td></tr>))}</tbody>
+            </table>
           </div>
         </div>
       )}
@@ -238,7 +246,8 @@ export default function AdminPage() {
           </div>
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm"><thead><tr className="text-left text-gray-400 border-b">{['Guest', 'Property', 'Dates', 'Guests', 'Total', 'Status'].map(h => <th key={h} className="py-2 pr-4">{h}</th>)}</tr></thead>
-            <tbody>{bookings.map(b => { const totalAmount = b.total_price || b.total; const statusClass = b.status === 'cancelled' ? 'bg-red-100 text-red-700' : b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; return (<tr key={b.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedBooking(b)}><td className="py-3 pr-4"><p className="font-medium text-gray-900">{b.full_name || '—'}</p><p className="text-xs text-gray-400">{b.email || '—'}</p></td><td className="py-3 pr-4">{b.listings?.title || '—'}</td><td className="py-3 pr-4 text-[10px]">{b.check_in ? new Date(b.check_in).toLocaleDateString() : '—'} →<br/>{b.check_out ? new Date(b.check_out).toLocaleDateString() : '—'}</td><td className="py-3 pr-4">{b.guests}</td><td className="py-3 pr-4">${totalAmount?.toLocaleString()}</td><td className="py-3 pr-4"><span className={`px-2 py-1 text-xs rounded-full font-medium ${statusClass}`}>{b.status || 'pending'}</span></td></tr>)})}</tbody></table>
+            <tbody>{bookings.map(b => { const totalAmount = b.total_price || b.total; const statusClass = b.status === 'cancelled' ? 'bg-red-100 text-red-700' : b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; return (<tr key={b.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedBooking(b)}><td className="py-3 pr-4"><p className="font-medium text-gray-900">{b.full_name || '—'}</p><p className="text-xs text-gray-400">{b.email || '—'}</p></td><td className="py-3 pr-4">{b.listings?.title || '—'}</td><td className="py-3 pr-4 text-[10px]">{b.check_in ? new Date(b.check_in).toLocaleDateString() : '—'} →<br/>{b.check_out ? new Date(b.check_out).toLocaleDateString() : '—'}</td><td className="py-3 pr-4">{b.guests}</td><td className="py-3 pr-4">${totalAmount?.toLocaleString()}</td><td className="py-3 pr-4"><span className={`px-2 py-1 text-xs rounded-full font-medium ${statusClass}`}>{b.status || 'pending'}</span></td></tr>)})}</tbody>
+            </table>
           </div>
         </div>
       )}
