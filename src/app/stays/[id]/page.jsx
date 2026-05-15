@@ -672,68 +672,62 @@ export default function StayDetail() {
         <SimilarStays currentId={id} city={city} />
       </div>
 
-  {/* MOBILE BOOKING BAR */}
-  <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-    <div className="px-3 py-2 flex items-center gap-2">
-      <div className="shrink-0">
-        <span className="text-lg font-bold text-stay-500">${price_per_night}</span>
-        <span className="text-gray-400 text-xs">/nt</span>
-        {nights > 0 && (
-          <span className="text-xs text-gray-500 ml-1">${total.toLocaleString()}</span>
-        )}
+      {/* MOBILE BOOKING BAR - Clean & Simple */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+        {/* Main row */}
+        <div className="flex items-center gap-2 px-3 py-2">
+          {/* Price */}
+          <div className="shrink-0">
+            <span className="text-base font-bold text-stay-500">${price_per_night}</span>
+            <span className="text-gray-400 text-[10px]">/nt</span>
+          </div>
+
+          {/* Check in */}
+          <input
+            type="date"
+            value={checkIn}
+            onChange={e => setCheckIn(e.target.value)}
+            className="flex-1 text-xs py-2 px-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-stay-400"
+            placeholder="Check in"
+          />
+
+          {/* Check out */}
+          <input
+            type="date"
+            value={checkOut}
+            onChange={e => setCheckOut(e.target.value)}
+            className="flex-1 text-xs py-2 px-2 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-stay-400"
+            placeholder="Check out"
+          />
+
+          {/* Reserve */}
+          <button
+            onClick={handleBook}
+            disabled={booking || !isSignedIn}
+            className="shrink-0 px-4 py-2 bg-stay-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+          >
+            {!isSignedIn ? 'Sign in' : nights > 0 ? `$${total}` : 'Reserve'}
+          </button>
+        </div>
+
+        {/* Guest row - subtle */}
+        <div className="flex items-center justify-between px-3 pb-2 text-[11px] text-gray-400">
+          <div className="flex items-center gap-2">
+            <span>👥</span>
+            <select
+              value={guests}
+              onChange={e => setGuests(Number(e.target.value))}
+              className="text-[11px] text-gray-600 bg-transparent border-none focus:outline-none"
+            >
+              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <span>✅ Free cancellation</span>
+            {nights > 0 && <span className="text-stay-500 font-medium">Total: ${total}</span>}
+          </div>
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <input
-          type="date"
-          value={checkIn}
-          onChange={e => setCheckIn(e.target.value)}
-          className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <input
-          type="date"
-          value={checkOut}
-          onChange={e => setCheckOut(e.target.value)}
-          className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
-        />
-      </div>
-      {isSignedIn ? (
-        <button
-          onClick={handleBook}
-          disabled={booking}
-          className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap disabled:opacity-50"
-        >
-          {nights > 0 ? `Book · $${total.toLocaleString()}` : 'Reserve'}
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn);
-            if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut);
-            sessionStorage.setItem('stayGuests', guests.toString());
-            window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
-          }}
-          className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap"
-        >
-          Sign in
-        </button>
-      )}
-    </div>
-    <div className="px-3 pb-2 pt-2 flex items-center gap-2 border-t">
-      <span className="text-xs text-gray-400">👥</span>
-      <select
-        value={guests}
-        onChange={e => setGuests(Number(e.target.value))}
-        className="flex-1 text-xs p-1.5 border rounded-lg bg-gray-50"
-      >
-        {[1,2,3,4,5,6].map(n => (
-          <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>
-        ))}
-      </select>
-      <span className="text-xs text-green-600">✅ Free cancellation</span>
-    </div>
-  </div>
     </div>
   )
 }
