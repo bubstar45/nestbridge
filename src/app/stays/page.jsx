@@ -453,18 +453,18 @@ export default function StaysPage() {
           {isLoading ? 'Finding stays...' : `${listings.length} stay${listings.length !== 1 ? 's' : ''} available`}
           {nights > 0 && <span className="ml-1 text-gray-400">· {nights} night{nights !== 1 ? 's' : ''}</span>}
         </p>
-        <div className="flex items-center justify-between order-1 sm:order-2">
+        <div className="flex items-center justify-end order-1 sm:order-2">
           {category !== 'All' && (
             <button onClick={() => setCategory('All')}
               className="flex items-center gap-1 text-xs bg-gray-900 text-white px-3 py-1.5 rounded-full font-medium mr-3">
               {CATEGORIES.find(c => c.label === category)?.icon} {category} ×
             </button>
           )}
-          <div className="flex border rounded-xl overflow-hidden">
+          <div className="flex border rounded-lg overflow-hidden">
             <button onClick={() => setView('grid')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${view === 'grid' ? 'bg-stay-500 text-white' : 'bg-white text-gray-600'}`}>List</button>
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${view === 'grid' ? 'bg-stay-500 text-white' : 'bg-white text-gray-600'}`}>List</button>
             <button onClick={() => setView('map')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${view === 'map' ? 'bg-stay-500 text-white' : 'bg-white text-gray-600'}`}>Map</button>
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${view === 'map' ? 'bg-stay-500 text-white' : 'bg-white text-gray-600'}`}>Map</button>
           </div>
         </div>
       </div>
