@@ -50,7 +50,6 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
     else if (el.mozRequestFullScreen)    el.mozRequestFullScreen()
   }
 
-  // Reset zoom/pan when switching photos
   useEffect(() => { setZoomed(false); setPan({ x: 0, y: 0 }) }, [current])
 
   const handleImgClick = (e) => {
@@ -83,12 +82,12 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
   const handleShare = async () => {
     const url = window.location.href
     if (navigator.share) {
-      try { await navigator.share({ title: document.title, url }); return } catch (_) {}
+      try { await navigator.share({ title: document.title, url }); return } catch {}
     }
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true); setTimeout(() => setCopied(false), 2000)
-    } catch (_) {}
+    } catch {}
   }
 
   useEffect(() => {
@@ -106,137 +105,74 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
-          <span className="text-sm text-gray-500">{current + 1} of {images.length} photos</span>
+          <span className="text-xs sm:text-sm text-gray-500">{current + 1} of {images.length} photos</span>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-          >
-            <IconShare className="w-4 h-4" />
-            {copied ? 'Copied!' : 'Share'}
+        <div className="flex gap-1 sm:gap-2">
+          <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 hover:bg-gray-50">
+            <IconShare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
           </button>
-          <button
-            onClick={() => setSaved(s => !s)}
-            className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
-              saved ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
-          >
-            <IconHeart className={`w-4 h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500 scale-110' : ''}`} />
-            {saved ? 'Saved' : 'Save'}
+          <button onClick={() => setSaved(s => !s)} className={`flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition-colors ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
+            <IconHeart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500 scale-110' : ''}`} />
+            <span className="hidden sm:inline">{saved ? 'Saved' : 'Save'}</span>
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* Main photo pane */}
-        <div
-          className="flex-1 bg-black relative overflow-hidden"
-          ref={galleryPaneRef}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        <div className="flex-1 bg-black relative overflow-hidden" ref={galleryPaneRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
           {currentImg?.url ? (
-            <img
-              ref={imgRef}
-              key={current}
-              src={currentImg.url}
-              alt=""
-              onMouseDown={handleMouseDown}
-              onClick={handleImgClick}
+            <img ref={imgRef} key={current} src={currentImg.url} alt="" onMouseDown={handleMouseDown} onClick={handleImgClick}
               className={`absolute inset-0 w-full h-full select-none ${zoomed ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
               style={{
                 objectFit: 'cover',
                 objectPosition: 'center',
-                transform: zoomed
-                  ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)`
-                  : 'scale(1) translate(0,0)',
+                transform: zoomed ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)` : 'scale(1) translate(0,0)',
                 transformOrigin: zoomed ? `${origin.x}% ${origin.y}%` : '50% 50%',
                 transition: dragging.current ? 'none' : 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)',
                 animation: 'galleryFadeIn 0.35s ease',
                 willChange: 'transform',
               }}
-              draggable={false}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <IconPhoto className="w-16 h-16 text-gray-600 opacity-30" />
-            </div>
-          )}
+              draggable={false} />
+          ) : (<div className="flex items-center justify-center h-full"><IconPhoto className="w-16 h-16 text-gray-600 opacity-30" /></div>)}
 
-          {/* Full Screen button */}
           {!zoomed && currentImg?.url && (
-            <button
-              onClick={enterFullscreen}
-              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <IconMaximize className="w-3.5 h-3.5" />
-              <span>Full Screen</span>
+            <button onClick={enterFullscreen} className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5 bg-black/50 hover:bg-black/70 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+              <IconMaximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Full Screen</span>
             </button>
           )}
-
-          {/* Zoom out button */}
           {zoomed && (
-            <button
-              onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }) }}
-              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 text-white text-xs px-3 py-1.5 rounded-lg"
-            >
-              <IconMinimize className="w-3.5 h-3.5" /> Zoom out
+            <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }) }} className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5 bg-black/50 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+              <IconMinimize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Zoom out
             </button>
           )}
-
-          {/* Nav arrows */}
           {images.length > 1 && (
             <>
-              <button
-                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }}
-                disabled={current === 0}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }} disabled={current === 0}
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
               </button>
-              <button
-                onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }}
-                disabled={current === images.length - 1}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }} disabled={current === images.length - 1}
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
               </button>
             </>
           )}
         </div>
 
-        {/* RIGHT — thumbnails */}
-        <div className="w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
+        <div className="w-full md:w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 gap-2">
               {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setCurrentIdx(i); setZoomed(false); setPan({ x: 0, y: 0 }) }}
-                  className={`aspect-square rounded-lg overflow-hidden transition-all ${
-                    i === current ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100' : 'opacity-70 hover:opacity-90'
-                  }`}
-                >
-                  {img.url ? (
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <IconPhoto className="w-6 h-6 text-gray-300" />
-                    </div>
-                  )}
+                <button key={i} onClick={() => { setCurrentIdx(i); setZoomed(false); setPan({ x: 0, y: 0 }) }}
+                  className={`aspect-square rounded-lg overflow-hidden transition-all ${i === current ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100' : 'opacity-70 hover:opacity-90'}`}>
+                  {img.url ? (<img src={img.url} alt="" className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gray-100 flex items-center justify-center"><IconPhoto className="w-6 h-6 text-gray-300" /></div>)}
                 </button>
               ))}
             </div>
@@ -251,63 +187,33 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
 
 // ── Airbnb-style Photo Grid ───────────────────────────────────────────────────
 function PhotoGrid({ images, onOpen }) {
-  // Show up to 5 slots: 1 large left + 2x2 right
-  const slots = [0, 1, 2, 3, 4]
   const hasImages = images.length > 0
 
   return (
-    <div className="relative mb-8">
-      <div className="grid grid-cols-2 gap-2 h-[340px] rounded-2xl overflow-hidden">
-
-        {/* Left — large main photo */}
-        <div
-          className="relative bg-gray-100 cursor-pointer overflow-hidden group"
-          onClick={() => onOpen(0)}
-        >
+    <div className="relative mb-6 sm:mb-8">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 h-[240px] sm:h-[340px] rounded-xl sm:rounded-2xl overflow-hidden">
+        <div className="relative bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => onOpen(0)}>
           {images[0]?.url ? (
-            <img
-              src={images[0].url}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+            <img src={images[0].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-              <IconPhoto className="w-16 h-16 text-gray-300" />
-            </div>
+            <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300" /></div>
           )}
         </div>
-
-        {/* Right — 2×2 grid */}
-        <div className="grid grid-cols-2 grid-rows-2 gap-2">
+        <div className="grid grid-cols-2 grid-rows-2 gap-1.5 sm:gap-2">
           {[1, 2, 3, 4].map((slot, idx) => (
-            <div
-              key={slot}
-              className="relative bg-gray-100 cursor-pointer overflow-hidden group"
-              onClick={() => onOpen(hasImages ? Math.min(slot, images.length - 1) : 0)}
-            >
+            <div key={slot} className="relative bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => onOpen(hasImages ? Math.min(slot, images.length - 1) : 0)}>
               {images[slot]?.url ? (
-                <img
-                  src={images[slot].url}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <img src={images[slot].url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <IconPhoto className="w-8 h-8 text-gray-300" />
-                </div>
+                <div className="w-full h-full flex items-center justify-center bg-gray-100"><IconPhoto className="w-6 h-6 sm:w-8 sm:h-8 text-gray-300" /></div>
               )}
             </div>
           ))}
         </div>
       </div>
-
-      {/* Show all photos button — bottom right, over the grid */}
       {hasImages && (
-        <button
-          onClick={() => onOpen(0)}
-          className="absolute bottom-4 right-4 flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all hover:shadow-md"
-        >
-          <IconGrid className="w-4 h-4" />
+        <button onClick={() => onOpen(0)} className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-1 sm:gap-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 text-[10px] sm:text-sm font-semibold px-2 sm:px-4 py-1 sm:py-2.5 rounded-lg sm:rounded-xl shadow-sm transition-all hover:shadow-md">
+          <IconGrid className="w-3 h-3 sm:w-4 sm:h-4" />
           Show all photos
         </button>
       )}
@@ -320,23 +226,16 @@ function PropertyMap({ address, city, state }) {
   const query = encodeURIComponent(`${address ? address + ', ' : ''}${city}, ${state}`)
   return (
     <div className="bg-white rounded-xl border overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Location</h3>
+      <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Location</h3>
         <a href={`https://maps.google.com/?q=${query}`} target="_blank" rel="noopener noreferrer" className="text-xs text-stay-500 hover:underline">
           Open in Maps ↗
         </a>
       </div>
-      <div className="h-56 w-full">
-        <iframe
-          title="Property location"
-          src={`https://maps.google.com/maps?q=${query}&output=embed&z=15`}
-          width="100%" height="100%"
-          style={{ border: 0 }}
-          allowFullScreen loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+      <div className="h-48 sm:h-56 w-full">
+        <iframe title="Property location" src={`https://maps.google.com/maps?q=${query}&output=embed&z=15`} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       </div>
-      <div className="px-6 py-3 text-sm text-gray-500 flex items-center gap-2 border-t">
+      <div className="px-4 sm:px-6 py-3 text-xs sm:text-sm text-gray-500 flex items-center gap-2 border-t">
         <span>📍</span>
         <span>{address ? `${address}, ` : ''}{city}, {state}</span>
       </div>
@@ -385,17 +284,15 @@ function AvailabilityCalendar({ minNights = 1, blockedDates = [], checkIn, check
 
   return (
     <div className="border rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-        <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600">‹</button>
-        <span className="font-semibold text-sm text-gray-800">{monthNames[viewMonth]} {viewYear}</span>
-        <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600">›</button>
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b bg-gray-50">
+        <button onClick={prevMonth} className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600 text-sm">‹</button>
+        <span className="font-semibold text-xs sm:text-sm text-gray-800">{monthNames[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-600 text-sm">›</button>
       </div>
       <div className="grid grid-cols-7 text-center border-b">
-        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-          <div key={d} className="py-2 text-xs font-medium text-gray-400">{d}</div>
-        ))}
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (<div key={d} className="py-1 sm:py-2 text-[10px] sm:text-xs font-medium text-gray-400">{d}</div>))}
       </div>
-      <div className="grid grid-cols-7 text-center p-2 gap-y-1">
+      <div className="grid grid-cols-7 text-center p-1 sm:p-2 gap-y-0.5 sm:gap-y-1">
         {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
         {Array.from({ length: days }).map((_, i) => {
           const d = new Date(viewYear, viewMonth, i + 1)
@@ -403,7 +300,7 @@ function AvailabilityCalendar({ minNights = 1, blockedDates = [], checkIn, check
           const past = isPast(d); const blocked = isBlocked(d)
           const isCI = checkIn === str; const isCO = checkOut === str
           const inRange = isInRange(d)
-          let cls = 'relative mx-auto w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all '
+          let cls = 'relative mx-auto w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-xs transition-all '
           if (past || blocked) cls += 'text-gray-300 cursor-not-allowed line-through'
           else if (isCI || isCO) cls += 'bg-stay-500 text-white font-bold cursor-pointer'
           else if (inRange) cls += 'bg-stay-100 text-stay-700 cursor-pointer rounded-none'
@@ -417,9 +314,9 @@ function AvailabilityCalendar({ minNights = 1, blockedDates = [], checkIn, check
           )
         })}
       </div>
-      <div className="px-4 py-2 border-t bg-gray-50 flex items-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-stay-500 inline-block" /> Selected</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-200 inline-block" /> Unavailable</span>
+      <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-t bg-gray-50 flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-stay-500 inline-block" /> Selected</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-200 inline-block" /> Unavailable</span>
         {minNights > 1 && <span>Min. {minNights} nights</span>}
       </div>
     </div>
@@ -439,14 +336,14 @@ function HouseRules({ rules }) {
   const items = rules ?? defaults
   return (
     <div className="pb-6 border-b mb-6">
-      <h3 className="font-semibold text-gray-900 mb-4 text-lg">House rules</h3>
-      <div className="grid grid-cols-2 gap-3">
+      <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">House rules</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {items.map((r, i) => (
-          <div key={i} className="flex items-center gap-3 text-sm">
-            <span className="text-lg">{r.icon}</span>
+          <div key={i} className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            <span className="text-lg sm:text-xl">{r.icon}</span>
             <div>
-              <p className="text-gray-500 text-xs">{r.label}</p>
-              <p className="text-gray-800 font-medium">{r.value}</p>
+              <p className="text-gray-500 text-[10px] sm:text-xs">{r.label}</p>
+              <p className="text-gray-800 font-medium text-xs sm:text-sm">{r.value}</p>
             </div>
           </div>
         ))}
@@ -457,17 +354,13 @@ function HouseRules({ rules }) {
 
 // ── Similar Stays ─────────────────────────────────────────────────────────────
 function SimilarStays({ currentId, city }) {
-  const { data } = useSWR(
-    city ? `similar-${city}` : null,
-    () => getListings({ city, type: 'stays' }).then(r =>
-      (r.data ?? []).filter(l => String(l.id) !== String(currentId)).slice(0, 3)
-    )
-  )
+  const { data } = useSWR(city ? `similar-${city}` : null, () => getListings({ city, type: 'stays' }).then(r =>
+    (r.data ?? []).filter(l => String(l.id) !== String(currentId)).slice(0, 3)))
   if (!data?.length) return null
   return (
-    <div className="mt-12 pt-8 border-t">
-      <h3 className="font-semibold text-gray-900 text-lg mb-6">Similar stays in {city}</h3>
-      <div className="grid grid-cols-3 gap-6">
+    <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t">
+      <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-4 sm:mb-6">Similar stays in {city}</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         {data.map(l => <StayCard key={l.id} listing={l} />)}
       </div>
     </div>
@@ -500,23 +393,15 @@ export default function StayDetail() {
     sessionStorage.removeItem('stayGuests')
   }, [])
 
-  const { data: listing, isLoading } = useSWR(
-    `stay-${id}`,
-    () => getListing(id).then(r => r.data)
-  )
+  const { data: listing, isLoading } = useSWR(`stay-${id}`, () => getListing(id).then(r => r.data))
 
-  const nights = checkIn && checkOut
-    ? Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000))
-    : 0
-
+  const nights = checkIn && checkOut ? Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / 86400000)) : 0
   const subtotal    = nights * (listing?.price_per_night ?? 0)
   const cleaningFee = 45
   const serviceFee  = Math.round(subtotal * 0.12)
   const total       = subtotal + cleaningFee + serviceFee
 
-  const cancellationDeadline = checkIn
-    ? new Date(new Date(checkIn).getTime() - 48 * 3600 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
-    : null
+  const cancellationDeadline = checkIn ? new Date(new Date(checkIn).getTime() - 48 * 3600 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : null
 
   const handleBook = async () => {
     if (!checkIn || !checkOut) return toast.error('Please select dates first.')
@@ -549,9 +434,7 @@ export default function StayDetail() {
 
   const handleShare = async () => {
     const url = window.location.href
-    if (navigator.share) {
-      try { await navigator.share({ title: listing?.title, url }); return } catch {}
-    }
+    if (navigator.share) { try { await navigator.share({ title: listing?.title, url }); return } catch {} }
     await navigator.clipboard.writeText(url)
     toast.success('Link copied to clipboard!')
   }
@@ -559,70 +442,45 @@ export default function StayDetail() {
   const openGallery = (index = 0) => { setGalleryStart(index); setGalleryOpen(true) }
 
   if (isLoading) return (
-    <div className="max-w-5xl mx-auto px-6 py-20">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20">
       <div className="animate-pulse space-y-4">
         <div className="h-8 bg-gray-100 rounded w-2/3" />
-        <div className="h-[420px] bg-gray-100 rounded-2xl" />
+        <div className="h-[280px] sm:h-[420px] bg-gray-100 rounded-2xl" />
       </div>
     </div>
   )
 
   if (!listing) return (
-    <div className="text-center py-20">
+    <div className="text-center py-20 px-4">
       <p className="text-gray-500">Stay not found.</p>
       <Link href="/stays" className="text-stay-500 mt-4 inline-block">← Back to stays</Link>
     </div>
   )
 
-  const { title, city, state, address, price_per_night, bedrooms, bathrooms,
-          sqft, type, description, amenities, min_nights, max_nights,
-          images = [], house_rules, blocked_dates = [] } = listing
+  const { title, city, state, address, price_per_night, bedrooms, bathrooms, sqft, type, description, amenities, min_nights, max_nights, images = [], house_rules, blocked_dates = [] } = listing
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen pb-20">
+      {galleryOpen && images.length > 0 && (<PhotoGalleryModal images={images} startIndex={galleryStart} onClose={() => setGalleryOpen(false)} />)}
 
-      {galleryOpen && images.length > 0 && (
-        <PhotoGalleryModal
-          images={images}
-          startIndex={galleryStart}
-          onClose={() => setGalleryOpen(false)}
-        />
-      )}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <Link href="/stays" className="text-xs sm:text-sm text-gray-500 hover:text-stay-500 mb-3 sm:mb-4 inline-block">← Back to stays</Link>
 
-      <div className="max-w-5xl mx-auto px-6 py-6">
-
-        {/* Breadcrumb */}
-        <Link href="/stays" className="text-sm text-gray-500 hover:text-stay-500 mb-4 inline-block">
-          ← Back to stays
-        </Link>
-
-        {/* Title row + Share / Save */}
-        <div className="flex items-start justify-between mb-1 gap-4">
-          <h1 className="text-2xl font-bold text-gray-900 flex-1">{title}</h1>
-          <div className="flex items-center gap-2 shrink-0 mt-1">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-            >
-              <IconShare className="w-4 h-4" /> Share
+        <div className="flex items-start justify-between mb-1 gap-2 sm:gap-4 flex-wrap">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex-1">{title}</h1>
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 mt-1">
+            <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 hover:bg-gray-50">
+              <IconShare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Share
             </button>
-            <button
-              onClick={() => {
-                if (!isSignedIn) return toast.error('Sign in to save stays.')
-                setSaved(s => !s)
-                toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥')
-              }}
-              className={`flex items-center gap-1.5 text-sm border rounded-lg px-3 py-1.5 transition-colors ${
-                saved ? 'bg-red-50 border-red-200 text-red-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <IconHeart className={`w-4 h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500' : ''}`} />
+            <button onClick={() => { if (!isSignedIn) return toast.error('Sign in to save stays.'); setSaved(s => !s); toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥') }}
+              className={`flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 transition-colors ${saved ? 'bg-red-50 border-red-200 text-red-500' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
+              <IconHeart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all ${saved ? 'fill-red-500 stroke-red-500' : ''}`} />
               {saved ? 'Saved' : 'Save'}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mb-6 text-sm text-gray-500">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 text-xs sm:text-sm text-gray-500 flex-wrap">
           <span>⭐ 4.92 · 38 reviews</span>
           <span>·</span>
           <span>📍 {city}, {state}</span>
@@ -630,110 +488,63 @@ export default function StayDetail() {
           <span className="capitalize">{type}</span>
         </div>
 
-        {/* Airbnb-style Photo Grid */}
         <PhotoGrid images={images} onOpen={openGallery} />
 
-        <div className="flex gap-10">
-          {/* ── Left column ── */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+          {/* Left column */}
           <div className="flex-1">
-
             <div className="flex items-center justify-between pb-6 border-b mb-6">
               <div>
-                <h2 className="font-semibold text-lg text-gray-900">
-                  {bedrooms === 0 ? 'Studio' : `${bedrooms} bedroom`} hosted by NestBridge
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  {bedrooms === 0 ? 'Studio' : `${bedrooms} bed${bedrooms > 1 ? 's' : ''}`} · {bathrooms} bath · {sqft} sqft
-                </p>
+                <h2 className="font-semibold text-base sm:text-lg text-gray-900">{bedrooms === 0 ? 'Studio' : `${bedrooms} bedroom`} hosted by NestBridge</h2>
+                <p className="text-gray-500 text-xs sm:text-sm">{bedrooms === 0 ? 'Studio' : `${bedrooms} bed${bedrooms > 1 ? 's' : ''}`} · {bathrooms} bath · {sqft} sqft</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-stay-500 flex items-center justify-center text-white font-bold text-lg">N</div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-stay-500 flex items-center justify-center text-white font-bold text-base sm:text-lg">N</div>
             </div>
 
-            <div className="space-y-4 pb-6 border-b mb-6">
-              {[
-                { icon: '✨', title: 'Entire space',   desc: "You'll have the whole place to yourself." },
-                { icon: '🔑', title: 'Self check-in',  desc: 'Check yourself in with a keypad.'         },
-                { icon: '⭐', title: 'Guest favourite', desc: 'One of the most loved stays in the area.' },
-              ].map(h => (
-                <div key={h.title} className="flex gap-4">
-                  <span className="text-2xl">{h.icon}</span>
-                  <div>
-                    <p className="font-medium text-gray-900">{h.title}</p>
-                    <p className="text-sm text-gray-500">{h.desc}</p>
-                  </div>
+            <div className="space-y-3 sm:space-y-4 pb-6 border-b mb-6">
+              {[{ icon: '✨', title: 'Entire space', desc: "You'll have the whole place to yourself." }, { icon: '🔑', title: 'Self check-in', desc: 'Check yourself in with a keypad.' }, { icon: '⭐', title: 'Guest favourite', desc: 'One of the most loved stays in the area.' }].map(h => (
+                <div key={h.title} className="flex gap-3 sm:gap-4">
+                  <span className="text-xl sm:text-2xl">{h.icon}</span>
+                  <div><p className="font-medium text-gray-900 text-sm sm:text-base">{h.title}</p><p className="text-gray-500 text-xs sm:text-sm">{h.desc}</p></div>
                 </div>
               ))}
             </div>
 
             <div className="pb-6 border-b mb-6">
-              <p className="text-gray-700 leading-relaxed">{description}</p>
-              {min_nights > 1 && (
-                <p className="text-sm text-gray-500 mt-3">
-                  Minimum stay: {min_nights} nights · Maximum: {max_nights} nights
-                </p>
-              )}
+              <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{description}</p>
+              {min_nights > 1 && (<p className="text-xs sm:text-sm text-gray-500 mt-3">Minimum stay: {min_nights} nights · Maximum: {max_nights} nights</p>)}
             </div>
 
             <div className="pb-6 border-b mb-6">
-              <h3 className="font-semibold text-gray-900 mb-4 text-lg">What this place offers</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {(amenities ?? []).map(a => (
-                  <div key={a} className="flex items-center gap-3 text-sm text-gray-700">
-                    <span className="text-gray-400">✓</span>{a}
-                  </div>
-                ))}
+              <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">What this place offers</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                {(amenities ?? []).map(a => (<div key={a} className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-700"><span className="text-gray-400">✓</span>{a}</div>))}
               </div>
             </div>
 
             <div className="pb-6 border-b mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 text-lg">
-                  {nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Select dates'}
-                </h3>
-                <button onClick={() => setUseCalendar(v => !v)} className="text-xs text-stay-500 hover:underline">
-                  {useCalendar ? 'Use text inputs instead' : 'Use calendar instead'}
-                </button>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="font-semibold text-gray-900 text-base sm:text-lg">{nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Select dates'}</h3>
+                <button onClick={() => setUseCalendar(v => !v)} className="text-[10px] sm:text-xs text-stay-500 hover:underline">{useCalendar ? 'Use text inputs' : 'Use calendar'}</button>
               </div>
-              {useCalendar ? (
-                <AvailabilityCalendar
-                  minNights={min_nights}
-                  blockedDates={blocked_dates}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  onChange={({ checkIn: ci, checkOut: co }) => { setCheckIn(ci); setCheckOut(co) }}
-                />
-              ) : (
+              {useCalendar ? (<AvailabilityCalendar minNights={min_nights} blockedDates={blocked_dates} checkIn={checkIn} checkOut={checkOut} onChange={({ checkIn: ci, checkOut: co }) => { setCheckIn(ci); setCheckOut(co) }} />) : (
                 <div className="border rounded-xl overflow-hidden">
                   <div className="grid grid-cols-2">
-                    <div className="p-3 border-r">
-                      <p className="text-xs font-bold text-gray-700 mb-1">CHECK-IN</p>
-                      <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
-                    </div>
-                    <div className="p-3">
-                      <p className="text-xs font-bold text-gray-700 mb-1">CHECKOUT</p>
-                      <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
-                    </div>
+                    <div className="p-2 sm:p-3 border-r"><p className="text-[10px] sm:text-xs font-bold text-gray-700 mb-1">CHECK-IN</p><input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-xs sm:text-sm text-gray-700 outline-none w-full" /></div>
+                    <div className="p-2 sm:p-3"><p className="text-[10px] sm:text-xs font-bold text-gray-700 mb-1">CHECKOUT</p><input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-xs sm:text-sm text-gray-700 outline-none w-full" /></div>
                   </div>
                 </div>
               )}
-              {nights > 0 && checkIn && checkOut && (
-                <p className="text-xs text-gray-400 mt-2">
-                  {new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(checkOut).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </p>
-              )}
+              {nights > 0 && checkIn && checkOut && (<p className="text-[10px] sm:text-xs text-gray-400 mt-2">{new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(checkOut).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>)}
             </div>
 
             <HouseRules rules={house_rules} />
 
             <div className="pb-6 border-b mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3 text-lg">Cancellation policy</h3>
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <p className="font-medium text-green-800 text-sm mb-1">
-                  ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ' up to 48 hours before check-in'}
-                </p>
-                <p className="text-green-700 text-xs leading-relaxed">
-                  Cancel before check-in for a full refund. After that, the first night and service fee are non-refundable.
-                </p>
+              <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-base sm:text-lg">Cancellation policy</h3>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4">
+                <p className="font-medium text-green-800 text-xs sm:text-sm mb-1">✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ' up to 48 hours before check-in'}</p>
+                <p className="text-green-700 text-[10px] sm:text-xs leading-relaxed">Cancel before check-in for a full refund. After that, the first night and service fee are non-refundable.</p>
               </div>
             </div>
 
@@ -742,100 +553,57 @@ export default function StayDetail() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-900 text-lg mb-6">Reviews</h3>
+              <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-4 sm:mb-6">Reviews</h3>
               <ReviewsSection listingId={id} />
             </div>
           </div>
 
-          {/* ── Right — booking card ── */}
-          <div className="w-80 shrink-0">
-            <div className="border rounded-2xl p-6 sticky top-24 shadow-lg">
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-2xl font-bold text-gray-900">${price_per_night}</span>
-                <span className="text-gray-500">/ night</span>
-              </div>
-
-              <p className="text-xs text-green-600 font-medium mb-4">
-                ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}
-              </p>
-
+          {/* Desktop booking card - hidden on mobile */}
+          <div className="hidden lg:block w-80 shrink-0">
+            <div className="border rounded-2xl p-4 sm:p-6 sticky top-24 shadow-lg">
+              <div className="flex items-baseline gap-1 mb-1"><span className="text-2xl font-bold text-gray-900">${price_per_night}</span><span className="text-gray-500 text-sm">/ night</span></div>
+              <p className="text-xs text-green-600 font-medium mb-4">✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}</p>
               <div className="border rounded-xl overflow-hidden mb-3">
-                <div className="grid grid-cols-2">
-                  <div className="p-3 border-r">
-                    <p className="text-xs font-bold text-gray-700 mb-1">CHECK-IN</p>
-                    <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs font-bold text-gray-700 mb-1">CHECKOUT</p>
-                    <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-sm text-gray-700 outline-none w-full" />
-                  </div>
-                </div>
-                <div className="border-t p-3">
-                  <p className="text-xs font-bold text-gray-700 mb-1">GUESTS</p>
-                  <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="text-sm text-gray-700 outline-none w-full">
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
-                  </select>
-                </div>
+                <div className="grid grid-cols-2"><div className="p-2 sm:p-3 border-r"><p className="text-[10px] sm:text-xs font-bold text-gray-700 mb-1">CHECK-IN</p><input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="text-xs sm:text-sm text-gray-700 outline-none w-full" /></div>
+                <div className="p-2 sm:p-3"><p className="text-[10px] sm:text-xs font-bold text-gray-700 mb-1">CHECKOUT</p><input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="text-xs sm:text-sm text-gray-700 outline-none w-full" /></div></div>
+                <div className="border-t p-2 sm:p-3"><p className="text-[10px] sm:text-xs font-bold text-gray-700 mb-1">GUESTS</p><select value={guests} onChange={e => setGuests(Number(e.target.value))} className="text-xs sm:text-sm text-gray-700 outline-none w-full">{[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}</select></div>
               </div>
-
-              {isSignedIn ? (
-                <button
-                  onClick={handleBook}
-                  disabled={booking}
-                  className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold hover:bg-stay-600 transition-colors disabled:opacity-50 mb-3"
-                >
-                  {booking ? 'Confirming...' : nights > 0 ? `Reserve · $${total.toLocaleString()}` : 'Reserve'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn)
-                    if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut)
-                    sessionStorage.setItem('stayGuests', guests.toString())
-                    window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`
-                  }}
-                  className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold mb-3"
-                >
-                  Sign in to Reserve
-                </button>
-              )}
-
-              <p className="text-xs text-gray-400 text-center mb-4">You won't be charged yet</p>
-
-              {nights > 0 && (
-                <div className="space-y-2 text-sm border-t pt-4">
-                  <div className="flex justify-between text-gray-600">
-                    <span>${price_per_night} × {nights} night{nights > 1 ? 's' : ''}</span>
-                    <span>${subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600"><span>Cleaning fee</span><span>${cleaningFee}</span></div>
-                  <div className="flex justify-between text-gray-600"><span>Service fee</span><span>${serviceFee}</span></div>
-                  <div className="flex justify-between font-bold pt-2 border-t text-gray-900">
-                    <span>Total</span><span>${total.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 mt-4">
-                <button onClick={handleShare} className="flex-1 text-xs text-gray-500 hover:text-gray-700 border rounded-lg py-2 hover:bg-gray-50 transition-colors">
-                  ↑ Share
-                </button>
-                <button
-                  onClick={() => {
-                    if (!isSignedIn) return toast.error('Sign in to save stays.')
-                    setSaved(s => !s)
-                    toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥')
-                  }}
-                  className={`flex-1 text-xs border rounded-lg py-2 transition-colors ${saved ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                >
-                  {saved ? '♥ Saved' : '♡ Save'}
-                </button>
-              </div>
+              {isSignedIn ? (<button onClick={handleBook} disabled={booking} className="w-full py-2.5 sm:py-3 bg-stay-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-stay-600 disabled:opacity-50 mb-3">{booking ? 'Confirming...' : nights > 0 ? `Reserve · $${total.toLocaleString()}` : 'Reserve'}</button>) : (<button onClick={() => { if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn); if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut); sessionStorage.setItem('stayGuests', guests.toString()); window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}` }} className="w-full py-2.5 sm:py-3 bg-stay-500 text-white rounded-xl font-semibold text-sm sm:text-base mb-3">Sign in to Reserve</button>)}
+              <p className="text-[10px] sm:text-xs text-gray-400 text-center mb-4">You won't be charged yet</p>
+              {nights > 0 && (<div className="space-y-1 sm:space-y-2 text-xs sm:text-sm border-t pt-3 sm:pt-4"><div className="flex justify-between text-gray-600"><span>${price_per_night} × {nights} night{nights > 1 ? 's' : ''}</span><span>${subtotal.toLocaleString()}</span></div><div className="flex justify-between text-gray-600"><span>Cleaning fee</span><span>${cleaningFee}</span></div><div className="flex justify-between text-gray-600"><span>Service fee</span><span>${serviceFee}</span></div><div className="flex justify-between font-bold pt-1 sm:pt-2 border-t text-gray-900"><span>Total</span><span>${total.toLocaleString()}</span></div></div>)}
+              <div className="flex gap-2 mt-3 sm:mt-4"><button onClick={handleShare} className="flex-1 text-[10px] sm:text-xs text-gray-500 hover:text-gray-700 border rounded-lg py-1.5 sm:py-2 hover:bg-gray-50">↑ Share</button><button onClick={() => { if (!isSignedIn) return toast.error('Sign in to save stays.'); setSaved(s => !s); toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥') }} className={`flex-1 text-[10px] sm:text-xs border rounded-lg py-1.5 sm:py-2 transition-colors ${saved ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>{saved ? '♥ Saved' : '♡ Save'}</button></div>
             </div>
           </div>
         </div>
 
         <SimilarStays currentId={id} city={city} />
+      </div>
+
+      {/* FLOATING RESERVE BAR - visible only on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+        <div className="px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex-1">
+            <div className="text-stay-500">
+              <span className="text-xl font-bold">${price_per_night}</span>
+              <span className="text-gray-400 text-sm">/night</span>
+            </div>
+            {nights > 0 && <p className="text-xs text-gray-500 mt-0.5">Total: ${total.toLocaleString()}</p>}
+          </div>
+          <div className="shrink-0">
+            {isSignedIn ? (
+              <button onClick={handleBook} disabled={booking} className="px-5 py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm hover:bg-stay-600 disabled:opacity-50 transition-colors shadow-md">
+                {booking ? '...' : 'Reserve'}
+              </button>
+            ) : (
+              <button onClick={() => { if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn); if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut); sessionStorage.setItem('stayGuests', guests.toString()); window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}` }} className="px-5 py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm hover:bg-stay-600 transition-colors shadow-md">
+                Sign in
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="bg-green-50 px-4 py-1.5 text-center">
+          <p className="text-green-700 text-[10px] font-medium">✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}</p>
+        </div>
       </div>
     </div>
   )
