@@ -436,112 +436,154 @@ export default function RentalDetail() {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12 flex flex-col lg:flex-row gap-6 lg:gap-8">
-        {/* Left column */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{title}</h1>
-          <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6 break-words">📍 {address ? `${address}, ` : ''}{city}, {state}</p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Left column */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{title}</h1>
+            <p className="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6 break-words">📍 {address ? `${address}, ` : ''}{city}, {state}</p>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
-            {[
-              { label: 'Bedrooms', value: bedrooms, icon: '🛏' },
-              { label: 'Bathrooms', value: bathrooms, icon: '🚿' },
-              { label: 'Square Feet', value: sqft?.toLocaleString(), icon: '📐' },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border p-2 sm:p-4 text-center">
-                <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{s.icon}</div>
-                <div className="font-bold text-gray-900 text-sm sm:text-base">{s.value}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-base sm:text-lg">About this rental</h3>
-            <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{description}</p>
-          </div>
-
-          <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Amenities</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {(amenities ?? []).map((a) => (
-                <div key={a} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
-                  <span className="text-green-500 font-bold">✓</span> {a}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <PropertyMap address={address} city={city} state={state} />
-          </div>
-
-          <div className="bg-white rounded-xl border p-4 sm:p-6">
-            <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Estimated Move-in Costs</h3>
-            <div className="space-y-2 sm:space-y-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
               {[
-                { label: "First month's rent", amount: price },
-                { label: 'Security deposit (est.)', amount: price },
-                { label: 'Application fee', amount: 50 },
-              ].map(item => (
-                <div key={item.label} className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-gray-600">{item.label}</span>
-                  <span className="font-medium text-gray-900">${item.amount?.toLocaleString()}</span>
+                { label: 'Bedrooms', value: bedrooms, icon: '🛏' },
+                { label: 'Bathrooms', value: bathrooms, icon: '🚿' },
+                { label: 'Square Feet', value: sqft?.toLocaleString(), icon: '📐' },
+              ].map(s => (
+                <div key={s.label} className="bg-white rounded-xl border p-2 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{s.icon}</div>
+                  <div className="font-bold text-gray-900 text-sm sm:text-base">{s.value}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500">{s.label}</div>
                 </div>
               ))}
-              <div className="border-t pt-2 sm:pt-3 flex justify-between font-semibold text-sm sm:text-base">
-                <span>Estimated total</span>
-                <span className="text-brand-500">${(moveInCost + 50)?.toLocaleString()}</span>
+            </div>
+
+            <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
+              <h3 className="font-semibold text-gray-900 mb-2 sm:mb-3 text-base sm:text-lg">About this rental</h3>
+              <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{description}</p>
+            </div>
+
+            <div className="bg-white rounded-xl border p-4 sm:p-6 mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Amenities</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                {(amenities ?? []).map((a) => (
+                  <div key={a} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                    <span className="text-green-500 font-bold">✓</span> {a}
+                  </div>
+                ))}
               </div>
             </div>
-            <p className="text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3">
-              * Security deposit may vary. Application fee is refundable if not approved within 7 days.
-            </p>
+
+            <div className="mb-6">
+              <PropertyMap address={address} city={city} state={state} />
+            </div>
+
+            <div className="bg-white rounded-xl border p-4 sm:p-6">
+              <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Estimated Move-in Costs</h3>
+              <div className="space-y-2 sm:space-y-3">
+                {[
+                  { label: "First month's rent", amount: price },
+                  { label: 'Security deposit (est.)', amount: price },
+                  { label: 'Application fee', amount: 50 },
+                ].map(item => (
+                  <div key={item.label} className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600">{item.label}</span>
+                    <span className="font-medium text-gray-900">${item.amount?.toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 sm:pt-3 flex justify-between font-semibold text-sm sm:text-base">
+                  <span>Estimated total</span>
+                  <span className="text-brand-500">${(moveInCost + 50)?.toLocaleString()}</span>
+                </div>
+              </div>
+              <p className="text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3">
+                * Security deposit may vary. Application fee is refundable if not approved within 7 days.
+              </p>
+            </div>
+          </div>
+
+          {/* Right - apply card - hidden on mobile, shown on desktop */}
+          <div className="hidden lg:block w-80 shrink-0">
+            <div className="bg-white border rounded-2xl p-4 sm:p-6 sticky top-24 shadow-sm">
+              <div className="mb-3 sm:mb-4">
+                <span className="text-2xl sm:text-3xl font-bold text-brand-500">${price?.toLocaleString()}</span>
+                <span className="text-gray-400 text-sm sm:text-base">/month</span>
+              </div>
+
+              {available_from && (
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 bg-gray-50 rounded-lg p-2 sm:p-3">
+                  <span>📅</span>
+                  <span>Available {new Date(available_from).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              )}
+
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] sm:text-xs p-2 sm:p-3 rounded-lg mb-4 sm:mb-5 leading-relaxed">
+                <strong>$50 application fee</strong> — Covers credit & background check. Fully refundable if not approved within 7 days.
+              </div>
+
+              <div className="mb-4 sm:mb-5 space-y-2">
+                {['Submit your application', 'We review within 24 hours', 'Get approved & sign lease'].map((step, i) => (
+                  <div key={step} className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-600">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0">{i + 1}</span>
+                    {step}
+                  </div>
+                ))}
+              </div>
+
+              {isSignedIn ? (
+                <button onClick={handleApply} disabled={applying}
+                  className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 disabled:opacity-50 transition-colors">
+                  {applying ? 'Submitting...' : 'Apply Now'}
+                </button>
+              ) : (
+                <button onClick={() => { window.location.href = `/sign-in?redirect_url=${encodeURIComponent(`/apply/${id}`)}` }}
+                  className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 transition-colors">
+                  Sign in to Apply
+                </button>
+              )}
+
+              <p className="text-[10px] sm:text-xs text-gray-400 text-center mt-2 sm:mt-3">No commitment until approved</p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right — apply card */}
-        <div className="w-full lg:w-80 shrink-0">
-          <div className="bg-white border rounded-2xl p-4 sm:p-6 sticky top-24 shadow-sm">
-            <div className="mb-3 sm:mb-4">
-              <span className="text-2xl sm:text-3xl font-bold text-brand-500">${price?.toLocaleString()}</span>
-              <span className="text-gray-400 text-sm sm:text-base">/month</span>
+      {/* FLOATING APPLY BAR - visible only on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+        <div className="px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex-1">
+            <div className="text-brand-500">
+              <span className="text-xl font-bold">${price?.toLocaleString()}</span>
+              <span className="text-gray-400 text-sm">/month</span>
             </div>
-
             {available_from && (
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 bg-gray-50 rounded-lg p-2 sm:p-3">
-                <span>📅</span>
-                <span>Available {new Date(available_from).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Available {new Date(available_from).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </p>
             )}
-
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] sm:text-xs p-2 sm:p-3 rounded-lg mb-4 sm:mb-5 leading-relaxed">
-              <strong>$50 application fee</strong> — Covers credit & background check. Fully refundable if not approved within 7 days.
-            </div>
-
-            <div className="mb-4 sm:mb-5 space-y-2">
-              {['Submit your application', 'We review within 24 hours', 'Get approved & sign lease'].map((step, i) => (
-                <div key={step} className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-gray-600">
-                  <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0">{i + 1}</span>
-                  {step}
-                </div>
-              ))}
-            </div>
-
+          </div>
+          <div className="shrink-0">
             {isSignedIn ? (
-              <button onClick={handleApply} disabled={applying}
-                className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 disabled:opacity-50 transition-colors">
-                {applying ? 'Submitting...' : 'Apply Now'}
+              <button
+                onClick={handleApply}
+                disabled={applying}
+                className="px-6 py-2.5 bg-brand-500 text-white rounded-xl font-semibold text-sm hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-md"
+              >
+                {applying ? '...' : 'Apply — $50'}
               </button>
             ) : (
-              <button onClick={() => { window.location.href = `/sign-in?redirect_url=${encodeURIComponent(`/apply/${id}`)}` }}
-                className="w-full py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-brand-600 transition-colors">
+              <button
+                onClick={() => { window.location.href = `/sign-in?redirect_url=${encodeURIComponent(`/apply/${id}`)}` }}
+                className="px-6 py-2.5 bg-brand-500 text-white rounded-xl font-semibold text-sm hover:bg-brand-600 transition-colors shadow-md"
+              >
                 Sign in to Apply
               </button>
             )}
-
-            <p className="text-[10px] sm:text-xs text-gray-400 text-center mt-2 sm:mt-3">No commitment until approved</p>
           </div>
+        </div>
+        <div className="bg-amber-50 px-4 py-1.5 text-center">
+          <p className="text-amber-700 text-[10px] font-medium">
+            $50 application fee · Refundable if not approved
+          </p>
         </div>
       </div>
     </div>
