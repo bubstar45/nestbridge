@@ -426,7 +426,7 @@ export default function ApplyPage() {
           ) : (
             <button onClick={handleSubmit} disabled={submitting}
               className="flex-1 py-2.5 sm:py-3 bg-brand-500 text-white rounded-xl font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">
-              {submitting ? 'Submitting...' : 'Submit — $50'}
+              {submitting ? 'Submitting...' : 'Submit'}
             </button>
           )}
         </div>
