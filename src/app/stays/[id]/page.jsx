@@ -672,77 +672,68 @@ export default function StayDetail() {
         <SimilarStays currentId={id} city={city} />
       </div>
 
-      {/* MOBILE BOOKING BAR - Compact with check-in/out inline */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-        <div className="px-3 py-2 flex items-center gap-2">
-          {/* Price */}
-          <div className="shrink-0">
-            <span className="text-lg font-bold text-stay-500">${price_per_night}</span>
-            <span className="text-gray-400 text-xs">/nt</span>
-            {nights > 0 && (
-              <span className="text-xs text-gray-500 ml-1">${total.toLocaleString()}</span>
-            )}
-          </div>
-
-          {/* Check-in */}
-          <div className="flex-1 min-w-0">
-            <input
-              type="date"
-              value={checkIn}
-              onChange={e => setCheckIn(e.target.value)}
-              className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
-              placeholder="Check in"
-            />
-          </div>
-
-          {/* Check-out */}
-          <div className="flex-1 min-w-0">
-            <input
-              type="date"
-              value={checkOut}
-              onChange={e => setCheckOut(e.target.value)}
-              className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
-              placeholder="Check out"
-            />
-          </div>
-
-          {/* Reserve button */}
-          {isSignedIn ? (
-            <button
-              onClick={handleBook}
-              disabled={booking}
-              className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap"
-            >
-              {nights > 0 ? `Book · $${total.toLocaleString()}` : 'Reserve'}
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn);
-                if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut);
-                sessionStorage.setItem('stayGuests', guests.toString());
-                window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
-              }}
-              className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap"
-            >
-              Sign in
-            </button>
-          )}
-        </div>
-        
-        {/* Optional: guests selector - hidden by default, show on tap */}
-        <div className="px-3 pb-2 flex items-center gap-2 border-t pt-2">
-          <span className="text-xs text-gray-500">👥</span>
-          <select
-            value={guests}
-            onChange={e => setGuests(Number(e.target.value))}
-            className="flex-1 text-xs p-1.5 border rounded-lg bg-gray-50"
-          >
-            {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
-          </select>
-          <span className="text-xs text-green-600">✅ Free cancellation</span>
-        </div>
+  {/* MOBILE BOOKING BAR */}
+  <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
+    <div className="px-3 py-2 flex items-center gap-2">
+      <div className="shrink-0">
+        <span className="text-lg font-bold text-stay-500">${price_per_night}</span>
+        <span className="text-gray-400 text-xs">/nt</span>
+        {nights > 0 && (
+          <span className="text-xs text-gray-500 ml-1">${total.toLocaleString()}</span>
+        )}
       </div>
+      <div className="flex-1 min-w-0">
+        <input
+          type="date"
+          value={checkIn}
+          onChange={e => setCheckIn(e.target.value)}
+          className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <input
+          type="date"
+          value={checkOut}
+          onChange={e => setCheckOut(e.target.value)}
+          className="w-full text-xs p-1.5 border rounded-lg text-gray-700 bg-gray-50"
+        />
+      </div>
+      {isSignedIn ? (
+        <button
+          onClick={handleBook}
+          disabled={booking}
+          className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap disabled:opacity-50"
+        >
+          {nights > 0 ? `Book · $${total.toLocaleString()}` : 'Reserve'}
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn);
+            if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut);
+            sessionStorage.setItem('stayGuests', guests.toString());
+            window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
+          }}
+          className="shrink-0 px-3 py-1.5 bg-stay-500 text-white rounded-lg text-xs font-semibold whitespace-nowrap"
+        >
+          Sign in
+        </button>
+      )}
+    </div>
+    <div className="px-3 pb-2 pt-2 flex items-center gap-2 border-t">
+      <span className="text-xs text-gray-400">👥</span>
+      <select
+        value={guests}
+        onChange={e => setGuests(Number(e.target.value))}
+        className="flex-1 text-xs p-1.5 border rounded-lg bg-gray-50"
+      >
+        {[1,2,3,4,5,6].map(n => (
+          <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>
+        ))}
+      </select>
+      <span className="text-xs text-green-600">✅ Free cancellation</span>
+    </div>
+  </div>
     </div>
   )
 }
