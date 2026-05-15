@@ -104,16 +104,23 @@ function BookingDetail({ booking, onClose }) {
 }
 
 // ── Mobile Card Components ─────────────────────────────────
-function ApplicationCard({ app, onClick }) {
+function ApplicationCard({ app, onClick, onApprove, onDeny }) {
   const STATUS_COLOR = { pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', denied: 'bg-red-100 text-red-700' }
   return (
-    <div onClick={() => onClick(app)} className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer active:bg-gray-50">
-      <div className="flex justify-between items-start mb-2">
-        <div><p className="font-semibold text-gray-900">{app.full_name || '—'}</p><p className="text-xs text-gray-400">{app.email || '—'}</p></div>
-        <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${STATUS_COLOR[app.status] || 'bg-gray-100 text-gray-600'}`}>{app.status || 'pending'}</span>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow">
+      <div onClick={() => onClick(app)} className="cursor-pointer">
+        <div className="flex justify-between items-start mb-2">
+          <div><p className="font-semibold text-gray-900">{app.full_name || '—'}</p><p className="text-xs text-gray-400">{app.email || '—'}</p></div>
+          <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${STATUS_COLOR[app.status] || 'bg-gray-100 text-gray-600'}`}>{app.status || 'pending'}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs mb-2"><span className="text-gray-500">Listing:</span><span className="text-gray-700 truncate">{app.listings?.title || '—'}</span><span className="text-gray-500">Date:</span><span className="text-gray-700">{app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}</span><span className="text-gray-500">Income:</span><span className="text-gray-700">{app.monthly_income ? `$${Number(app.monthly_income).toLocaleString()}/mo` : '—'}</span></div>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-xs mb-2"><span className="text-gray-500">Listing:</span><span className="text-gray-700 truncate">{app.listings?.title || '—'}</span><span className="text-gray-500">Date:</span><span className="text-gray-700">{app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : '—'}</span><span className="text-gray-500">Income:</span><span className="text-gray-700">{app.monthly_income ? `$${Number(app.monthly_income).toLocaleString()}/mo` : '—'}</span></div>
-      {app.status === 'pending' && (<div className="flex gap-2 mt-2"><button onClick={(e) => { e.stopPropagation(); decide(app.id, 'approved') }} className="flex-1 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium">Approve</button><button onClick={(e) => { e.stopPropagation(); decide(app.id, 'denied') }} className="flex-1 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium">Deny</button></div>)}
+      {app.status === 'pending' && (
+        <div className="flex gap-2 mt-2">
+          <button onClick={(e) => { e.stopPropagation(); onApprove(app.id) }} className="flex-1 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium">Approve</button>
+          <button onClick={(e) => { e.stopPropagation(); onDeny(app.id) }} className="flex-1 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium">Deny</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -132,7 +139,7 @@ function BookingCard({ booking, onClick }) {
   const totalAmount = booking.total_price || booking.total
   const statusClass = booking.status === 'cancelled' ? 'bg-red-100 text-red-700' : booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
   return (
-    <div onClick={() => onClick(booking)} className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer active:bg-gray-50">
+    <div onClick={() => onClick(booking)} className="bg-white border border-gray-200 rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer">
       <div className="flex justify-between items-start mb-2"><div><p className="font-semibold text-gray-900 text-sm">{booking.full_name || '—'}</p><p className="text-xs text-gray-400">{booking.email || '—'}</p></div><span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusClass}`}>{booking.status || 'pending'}</span></div>
       <div className="grid grid-cols-2 gap-1 text-xs mb-2"><span className="text-gray-500">Property:</span><span className="text-gray-700 truncate">{booking.listings?.title || '—'}</span><span className="text-gray-500">Dates:</span><span className="text-gray-700 text-[10px]">{booking.check_in ? new Date(booking.check_in).toLocaleDateString() : '—'} → {booking.check_out ? new Date(booking.check_out).toLocaleDateString() : '—'}</span><span className="text-gray-500">Guests:</span><span className="text-gray-700">{booking.guests}</span><span className="text-gray-500">Total:</span><span className="text-gray-700">${totalAmount?.toLocaleString()}</span></div>
     </div>
@@ -188,21 +195,19 @@ export default function AdminPage() {
 
       <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Admin Dashboard</h1>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
         {KPI.map(k => (<div key={k.label} className="bg-gray-50 rounded-xl p-3 sm:p-5"><p className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">{k.label}</p><p className="text-xl sm:text-2xl font-bold">{k.value}</p></div>))}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-3 sm:gap-4 mb-6 border-b">
         {['applications', 'listings', 'bookings'].map(t => (<button key={t} onClick={() => setTab(t)} className={`pb-2 text-sm font-medium capitalize border-b-2 -mb-px ${tab === t ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-400'}`}>{t}</button>))}
       </div>
 
-      {/* Applications Tab - Cards on mobile, Table on desktop */}
+      {/* Applications Tab */}
       {tab === 'applications' && (
         <div>
           <div className="block lg:hidden">
-            {apps.length === 0 ? (<div className="text-center py-16 text-gray-400"><p className="text-3xl mb-2">📋</p><p>No applications yet.</p></div>) : (apps.map(a => <ApplicationCard key={a.id} app={a} onClick={setSelectedApp} />))}
+            {apps.length === 0 ? (<div className="text-center py-16 text-gray-400"><p className="text-3xl mb-2">📋</p><p>No applications yet.</p></div>) : (apps.map(a => <ApplicationCard key={a.id} app={a} onClick={setSelectedApp} onApprove={(id) => decide(id, 'approved')} onDeny={(id) => decide(id, 'denied')} />))}
           </div>
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
