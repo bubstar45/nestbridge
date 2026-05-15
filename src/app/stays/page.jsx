@@ -475,7 +475,7 @@ export default function StaysPage() {
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-12">
           {isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="rounded-2xl overflow-hidden">
                   <div className="h-56 bg-gray-100 animate-pulse rounded-2xl mb-3" />
@@ -496,7 +496,7 @@ export default function StaysPage() {
               </p>
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {listings.map(l => <StayCard key={l.id} listing={l} nights={nights} />)}
           </div>
         </div>
