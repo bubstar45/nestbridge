@@ -672,26 +672,147 @@ export default function StayDetail() {
         <SimilarStays currentId={id} city={city} />
       </div>
 
-      {/* FLOATING RESERVE BAR - visible only on mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
-        <div className="px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex-1">
-            <div className="text-stay-500">
-              <span className="text-xl font-bold">${price_per_night}</span>
+       {/* MOBILE BOOKING CARD - Full card with date picker */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden max-h-[85vh] overflow-y-auto">
+        <div className="p-4">
+          {/* Price */}
+          <div className="flex items-baseline justify-between mb-3">
+            <div>
+              <span className="text-2xl font-bold text-stay-500">${price_per_night}</span>
               <span className="text-gray-400 text-sm">/night</span>
             </div>
-            {nights > 0 && <p className="text-xs text-gray-500 mt-0.5">Total: ${total.toLocaleString()}</p>}
-          </div>
-          <div className="shrink-0">
-            {isSignedIn ? (
-              <button onClick={handleBook} disabled={booking} className="px-5 py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm hover:bg-stay-600 disabled:opacity-50 transition-colors shadow-md">
-                {booking ? '...' : 'Reserve'}
-              </button>
-            ) : (
-              <button onClick={() => { if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn); if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut); sessionStorage.setItem('stayGuests', guests.toString()); window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}` }} className="px-5 py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm hover:bg-stay-600 transition-colors shadow-md">
-                Sign in
-              </button>
+            {nights > 0 && (
+              <div className="text-right">
+                <p className="text-sm font-semibold text-gray-900">${total.toLocaleString()}</p>
+                <p className="text-xs text-gray-400">total</p>
+              </div>
             )}
+          </div>
+
+          {/* Cancellation badge */}
+          <p className="text-xs text-green-600 font-medium mb-3">
+            ✅ Free cancellation{cancellationDeadline ? ` before ${cancellationDeadline}` : ''}
+          </p>
+
+          {/* Date picker - prominent and easy to use */}
+          <div className="border rounded-xl overflow-hidden mb-3">
+            <div className="grid grid-cols-2">
+              <div className="p-3 border-r bg-gray-50">
+                <p className="text-xs font-bold text-gray-700 mb-1">CHECK-IN</p>
+                <input 
+                  type="date" 
+                  value={checkIn} 
+                  onChange={e => setCheckIn(e.target.value)} 
+                  className="text-sm text-gray-700 outline-none w-full bg-transparent"
+                  placeholder="Add date"
+                />
+              </div>
+              <div className="p-3 bg-gray-50">
+                <p className="text-xs font-bold text-gray-700 mb-1">CHECKOUT</p>
+                <input 
+                  type="date" 
+                  value={checkOut} 
+                  onChange={e => setCheckOut(e.target.value)} 
+                  className="text-sm text-gray-700 outline-none w-full bg-transparent"
+                  placeholder="Add date"
+                />
+              </div>
+            </div>
+            <div className="border-t p-3">
+              <p className="text-xs font-bold text-gray-700 mb-1">GUESTS</p>
+              <select 
+                value={guests} 
+                onChange={e => setGuests(Number(e.target.value))} 
+                className="text-sm text-gray-700 outline-none w-full bg-transparent"
+              >
+                {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Calendar toggle for more options */}
+          <button 
+            onClick={() => setUseCalendar(v => !v)} 
+            className="text-xs text-stay-500 hover:underline mb-3 inline-block"
+          >
+            {useCalendar ? '← Use simple date picker' : '📅 Use calendar view'}
+          </button>
+
+          {/* Calendar view (collapsible) */}
+          {useCalendar && (
+            <div className="mb-3">
+              <AvailabilityCalendar 
+                minNights={min_nights} 
+                blockedDates={blocked_dates} 
+                checkIn={checkIn} 
+                checkOut={checkOut} 
+                onChange={({ checkIn: ci, checkOut: co }) => { setCheckIn(ci); setCheckOut(co) }} 
+              />
+            </div>
+          )}
+
+          {/* Price breakdown when dates selected */}
+          {nights > 0 && (
+            <div className="bg-gray-50 rounded-xl p-3 mb-3">
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">${price_per_night} × {nights} nights</span>
+                  <span>${subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cleaning fee</span>
+                  <span>${cleaningFee}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Service fee</span>
+                  <span>${serviceFee}</span>
+                </div>
+                <div className="flex justify-between font-bold pt-2 border-t">
+                  <span>Total</span>
+                  <span className="text-stay-600">${total.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reserve button */}
+          {isSignedIn ? (
+            <button
+              onClick={handleBook}
+              disabled={booking}
+              className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold text-base hover:bg-stay-600 disabled:opacity-50 transition-colors shadow-md"
+            >
+              {booking ? 'Processing...' : nights > 0 ? `Reserve · $${total.toLocaleString()}` : 'Select dates to reserve'}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (checkIn) sessionStorage.setItem('stayCheckIn', checkIn);
+                if (checkOut) sessionStorage.setItem('stayCheckOut', checkOut);
+                sessionStorage.setItem('stayGuests', guests.toString());
+                window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.pathname)}`;
+              }}
+              className="w-full py-3 bg-stay-500 text-white rounded-xl font-semibold text-base hover:bg-stay-600 transition-colors shadow-md"
+            >
+              Sign in to Reserve
+            </button>
+          )}
+
+          {/* Share and Save buttons */}
+          <div className="flex gap-3 mt-3">
+            <button onClick={handleShare} className="flex-1 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1">
+              <IconShare className="w-4 h-4" /> Share
+            </button>
+            <button
+              onClick={() => {
+                if (!isSignedIn) return toast.error('Sign in to save stays.');
+                setSaved(s => !s);
+                toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist ♥');
+              }}
+              className={`flex-1 py-2 text-sm border rounded-lg flex items-center justify-center gap-1 transition-colors ${saved ? 'text-red-500 border-red-200 bg-red-50' : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50'}`}
+            >
+              <IconHeart className={`w-4 h-4 ${saved ? 'fill-red-500 stroke-red-500' : ''}`} /> {saved ? 'Saved' : 'Save'}
+            </button>
           </div>
         </div>
         <div className="bg-green-50 px-4 py-1.5 text-center">
