@@ -257,7 +257,7 @@ export default function StaysPage() {
   const hasSearchCriteria = city || checkIn || checkOut || totalGuests > 0
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className={`min-h-screen bg-white ${view === 'map' ? '' : 'pb-20'}`}>,
       {/* Mobile Search Bar - Simplified (like Airbnb) */}
       <div className="sticky top-0 z-40 bg-white border-b px-4 py-3 md:hidden">
         <button
