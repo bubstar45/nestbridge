@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useRef, useState, useCallback } from 'react'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
@@ -280,7 +281,172 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-function MapPopup({ listing, onClose, isMobile }) {
+// Mobile popup with improved positioning and boundary checking
+function MobilePopup({ listing, onClose, markerPosition }) {
+  const [imgIdx, setImgIdx] = useState(0)
+  const [adjustedPosition, setAdjustedPosition] = useState({ x: 0, y: 0, popupBelow: false })
+  const popupRef = useRef(null)
+  
+  useEffect(() => { setImgIdx(0) }, [listing?.id])
+  
+  useEffect(() => {
+    if (!markerPosition || !popupRef.current) return
+    
+    // Get popup dimensions
+    const popupHeight = popupRef.current.offsetHeight
+    const popupWidth = popupRef.current.offsetWidth
+    
+    // Check if popup would go off screen
+    const wouldGoOffTop = markerPosition.y - popupHeight - 15 < 0
+    const wouldGoOffRight = markerPosition.x + popupWidth / 2 > window.innerWidth
+    const wouldGoOffLeft = markerPosition.x - popupWidth / 2 < 0
+    
+    // Adjust horizontal position
+    let x = markerPosition.x
+    if (wouldGoOffRight) x = window.innerWidth - popupWidth / 2 - 10
+    if (wouldGoOffLeft) x = popupWidth / 2 + 10
+    
+    // Position above or below marker
+    const popupBelow = wouldGoOffTop
+    let y = popupBelow 
+      ? markerPosition.y + 40  // below marker
+      : markerPosition.y - 15   // above marker
+    
+    setAdjustedPosition({ x, y, popupBelow })
+  }, [markerPosition])
+
+  // Safety check
+  if (!listing || !markerPosition || typeof markerPosition.x !== 'number' || typeof markerPosition.y !== 'number') return null
+
+  const col = PRICE_COLOR(listing.price_per_night || 0)
+  const images = listing?.images ?? []
+  const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
+  const rating = listing.rating ?? listing.avg_rating
+
+  const popupStyle = {
+    position: 'absolute',
+    zIndex: 1000,
+    top: adjustedPosition.popupBelow ? `${adjustedPosition.y}px` : 'auto',
+    bottom: adjustedPosition.popupBelow ? 'auto' : 'auto',
+    left: `${adjustedPosition.x}px`,
+    transform: 'translateX(-50%)',
+    width: 260,
+    background: '#fff',
+    borderRadius: 12,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+    overflow: 'hidden',
+    border: '1px solid #e5e7eb',
+  }
+
+  // Arrow pointing to marker
+  const arrowStyle = adjustedPosition.popupBelow ? {
+    position: 'absolute',
+    top: -6,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 0,
+    height: 0,
+    borderLeft: '6px solid transparent',
+    borderRight: '6px solid transparent',
+    borderBottom: '6px solid white',
+  } : {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 0,
+    height: 0,
+    borderLeft: '6px solid transparent',
+    borderRight: '6px solid transparent',
+    borderTop: '6px solid white',
+  }
+
+  return (
+    <div ref={popupRef} style={popupStyle}>
+      <div style={{
+        position: 'relative', width: '100%',
+        height: 120,
+        background: '#f3f4f6', overflow: 'hidden'
+      }}>
+        {activeUrl ? (
+          <img src={activeUrl} alt={listing.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>
+            No photo
+          </div>
+        )}
+        
+        <div style={{
+          position: 'absolute', top: 6, left: 6,
+          background: col.bg, color: '#fff',
+          padding: '2px 6px', borderRadius: 12,
+          fontSize: 10, fontWeight: 700,
+        }}>
+          ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 8 }}>/nt</span>
+        </div>
+
+        {rating != null && (
+          <div style={{
+            position: 'absolute', top: 6, right: 28,
+            background: 'rgba(0,0,0,0.55)', color: '#fff',
+            padding: '2px 6px', borderRadius: 12,
+            fontSize: 10, fontWeight: 600,
+          }}>
+            ★ {Number(rating).toFixed(1)}
+          </div>
+        )}
+        
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 4, right: 4,
+          width: 20, height: 20, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff', fontSize: 12, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none',
+        }}>×</button>
+      </div>
+
+      <div style={{ padding: '8px 10px 10px' }}>
+        <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
+          {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
+        </div>
+        <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
+          {listing.city}, {listing.state}
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+          {listing.bedrooms != null && (
+            <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
+              {listing.bedrooms} bd
+            </span>
+          )}
+          {listing.max_guests != null && (
+            <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
+              {listing.max_guests} guests
+            </span>
+          )}
+          {listing.type && (
+            <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
+              {listing.type === 'Entire place' ? 'Entire' : listing.type === 'Private room' ? 'Private' : 'Shared'}
+            </span>
+          )}
+        </div>
+        <a href={`/stays/${listing.id}`} style={{
+          display: 'block', textAlign: 'center',
+          padding: '6px', borderRadius: 6,
+          background: '#e8590c', color: '#fff',
+          fontSize: 11, fontWeight: 500,
+          textDecoration: 'none',
+        }}>View →</a>
+      </div>
+      
+      <div style={arrowStyle} />
+    </div>
+  )
+}
+
+// Desktop popup (simpler, centered at bottom)
+function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
   if (!listing) return null
@@ -290,59 +456,34 @@ function MapPopup({ listing, onClose, isMobile }) {
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
   const rating = listing.rating ?? listing.avg_rating
 
-  const mobileStyle = {
-    position: 'absolute', zIndex: 1000,
-    bottom: 0, left: 0, right: 0, width: '100%',
-    background: '#fff', borderRadius: '18px 18px 0 0',
-    boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'slideUp .2s ease',
-  }
-  const desktopStyle = {
-    position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
-    transform: 'translateX(-50%)', width: 288,
-    background: '#fff', borderRadius: 18,
-    boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'popIn .18s ease',
-  }
-
   return (
-    <div style={isMobile ? mobileStyle : desktopStyle}>
-      <style>{`
-        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-      `}</style>
-
-      {isMobile && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#d1d5db' }} />
-        </div>
-      )}
-
+    <div style={{
+      position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
+      transform: 'translateX(-50%)', width: 288,
+      background: '#fff', borderRadius: 18,
+      boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
+      overflow: 'hidden', border: '1px solid #e5e7eb',
+    }}>
       <div style={{
-        position: 'relative', width: '100%',
-        height: isMobile ? 200 : 160,
+        position: 'relative', width: '100%', height: 160,
         background: '#f3f4f6', overflow: 'hidden'
       }}>
         {activeUrl ? (
           <img src={activeUrl} alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }} />
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>
             No photo
           </div>
         )}
-
+        
         <div style={{
           position: 'absolute', top: 10, left: 10,
           background: col.bg, color: '#fff',
           padding: '4px 12px', borderRadius: 20,
           fontSize: 13, fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-          border: '1.5px solid rgba(255,255,255,0.3)'
         }}>
-          ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>/night</span>
+          ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400 }}>/nt</span>
         </div>
 
         {rating != null && (
@@ -355,16 +496,15 @@ function MapPopup({ listing, onClose, isMobile }) {
             ★ {Number(rating).toFixed(1)}
           </div>
         )}
-
+        
         <button onClick={onClose} style={{
           position: 'absolute', top: 8, right: 8,
-          width: 30, height: 30, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)',
-          color: '#fff', fontSize: 16, cursor: 'pointer',
+          width: 28, height: 28, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff', fontSize: 14, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          WebkitTapHighlightColor: 'transparent',
         }}>×</button>
-
+        
         {images.length > 1 && (
           <div style={{
             position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
@@ -375,15 +515,14 @@ function MapPopup({ listing, onClose, isMobile }) {
                 width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3,
                 background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)',
                 border: 'none', cursor: 'pointer', padding: 0,
-                transition: 'width .2s, background .2s'
               }} />
             ))}
           </div>
         )}
       </div>
-
-      <div style={{ padding: isMobile ? '14px 16px 20px' : '12px 14px 14px' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2, lineHeight: 1.35 }}>
+      
+      <div style={{ padding: '12px 14px 14px' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2 }}>
           {listing.title}
         </div>
         <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>
@@ -404,10 +543,10 @@ function MapPopup({ listing, onClose, isMobile }) {
         </div>
         <a href={`/stays/${listing.id}`} style={{
           display: 'block', textAlign: 'center',
-          padding: isMobile ? '11px' : '9px', borderRadius: 10,
+          padding: '9px', borderRadius: 10,
           background: '#e8590c', color: '#fff',
           fontSize: 13, fontWeight: 600,
-          textDecoration: 'none', letterSpacing: 0.2
+          textDecoration: 'none',
         }}>View stay</a>
       </div>
     </div>
@@ -423,7 +562,7 @@ export default function StayMapView({ listings = [] }) {
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
   const [isMapReady, setIsMapReady] = useState(false)
-  const [showMobileList, setShowMobileList] = useState(false)
+  const [markerPosition, setMarkerPosition] = useState(null)
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price_per_night || 0)) : 1000
   const [filters, setFilters] = useState({ guests: 'Any', type: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
@@ -519,6 +658,7 @@ export default function StayMapView({ listings = [] }) {
     }
   }, [listings])
 
+  // Update markers when filters change
   useEffect(() => {
     if (!isMapReady) return
     const L = LRef.current
@@ -531,13 +671,38 @@ export default function StayMapView({ listings = [] }) {
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
       const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
-      const marker = L.marker([l.lat, l.lng], { icon })
-      marker.on('click', () => { setPopupListing(l); setActiveId(l.id) })
+      const marker = L.marker([l.lat, l.lng], { 
+        icon: icon,
+        tap: true,
+        bubblingMouseEvents: false
+      })
+      
+      // Improved click handler with position detection
+      marker.on('click', (e) => {
+        // Get marker position - works better on mobile
+        let point
+        try {
+          // Try to get position from the click event itself first (more reliable on mobile)
+          if (e.originalEvent && e.originalEvent.clientX) {
+            point = { x: e.originalEvent.clientX, y: e.originalEvent.clientY }
+          } else {
+            point = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+          }
+        } catch (err) {
+          // Fallback to viewport center if everything fails
+          point = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+        }
+        setMarkerPosition({ x: point.x, y: point.y })
+        setPopupListing(l)
+        setActiveId(l.id)
+      })
+      
       markersRef.current[l.id] = marker
       cluster.addLayer(marker)
     })
   }, [filtered, isMapReady])
 
+  // Handle marker scaling on hover/active
   useEffect(() => {
     Object.entries(markersRef.current).forEach(([id, marker]) => {
       const el = marker.getElement()
@@ -557,7 +722,6 @@ export default function StayMapView({ listings = [] }) {
     if (map && l.lat && l.lng) {
       map.flyTo([l.lat, l.lng], Math.max(map.getZoom(), 14), { duration: 0.6 })
     }
-    setShowMobileList(false)
   }, [])
 
   const handleSidebarHover = useCallback((id) => setActiveId(id), [])
@@ -606,11 +770,18 @@ export default function StayMapView({ listings = [] }) {
         }}
       >Fit all stays</button>
 
-      <MapPopup
-        listing={popupListing}
-        onClose={() => { setPopupListing(null); setActiveId(null) }}
-        isMobile={isMobile}
-      />
+      {isMobile ? (
+        <MobilePopup
+          listing={popupListing}
+          onClose={() => { setPopupListing(null); setActiveId(null); setMarkerPosition(null) }}
+          markerPosition={markerPosition}
+        />
+      ) : (
+        <DesktopPopup
+          listing={popupListing}
+          onClose={() => { setPopupListing(null); setActiveId(null) }}
+        />
+      )}
     </div>
   )
 
