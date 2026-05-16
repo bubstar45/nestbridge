@@ -53,11 +53,10 @@ export const createApplication = async (data) => {
   return { data: result }
 }
 
-export const getMyApplications = async (userId) => {
+export const getMyApplications = async () => {
   const { data, error } = await supabase
     .from('applications')
     .select('*, listings(*)')
-    .eq('user_id', userId)
     .order('submitted_at', { ascending: false })
   if (error) throw error
   return { data }

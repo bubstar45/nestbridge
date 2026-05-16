@@ -307,10 +307,10 @@ export default function Dashboard() {
 
   if (isLoaded && !isSignedIn) redirect('/')
 
-  const { data: apps = [], mutate: mutateApps } = useSWR(
-    user ? ['my-apps', user.id] : null,
-    () => getMyApplications(user.id).then(r => r.data)
-  )
+const { data: apps = [], mutate: mutateApps } = useSWR('my-apps',
+  () => getMyApplications().then(r => r.data),
+  { revalidateOnMount: true, revalidateOnFocus: true }
+)
 
   const { data: bookings = [], mutate: mutateBookings } = useSWR(
     user ? ['my-bookings', user.id] : null,
