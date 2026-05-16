@@ -322,10 +322,39 @@ function DesktopPopup({ listing, onClose }) {
   )
 }
 
-// Mobile popup (small, above marker)
+// Mobile popup (small, above marker with boundary checking)
 function MobilePopup({ listing, onClose, markerPosition }) {
   const [imgIdx, setImgIdx] = useState(0)
+  const [adjustedPosition, setAdjustedPosition] = useState({ x: 0, y: 0, popupBelow: false })
+  const popupRef = useRef(null)
+  
   useEffect(() => { setImgIdx(0) }, [listing?.id])
+  useEffect(() => {
+    if (!markerPosition || !popupRef.current) return
+    
+    // Get popup dimensions
+    const popupHeight = popupRef.current.offsetHeight
+    const popupWidth = popupRef.current.offsetWidth
+    
+    // Check if popup would go off screen
+    const wouldGoOffTop = markerPosition.y - popupHeight - 15 < 0
+    const wouldGoOffRight = markerPosition.x + popupWidth / 2 > window.innerWidth
+    const wouldGoOffLeft = markerPosition.x - popupWidth / 2 < 0
+    
+    // Adjust horizontal position
+    let x = markerPosition.x
+    if (wouldGoOffRight) x = window.innerWidth - popupWidth / 2 - 10
+    if (wouldGoOffLeft) x = popupWidth / 2 + 10
+    
+    // Position above or below marker
+    const popupBelow = wouldGoOffTop
+    let y = popupBelow 
+      ? markerPosition.y + 40  // below marker
+      : markerPosition.y - 15   // above marker
+    
+    setAdjustedPosition({ x, y, popupBelow })
+  }, [markerPosition])
+
   if (!listing || !markerPosition) return null
 
   const col = PRICE_COLOR(listing.price || 0)
@@ -335,8 +364,9 @@ function MobilePopup({ listing, onClose, markerPosition }) {
   const popupStyle = {
     position: 'absolute',
     zIndex: 1000,
-    bottom: `calc(100vh - ${markerPosition.y}px + 10px)`,
-    left: `${markerPosition.x}px`,
+    top: adjustedPosition.popupBelow ? `${adjustedPosition.y}px` : 'auto',
+    bottom: adjustedPosition.popupBelow ? 'auto' : 'auto',
+    left: `${adjustedPosition.x}px`,
     transform: 'translateX(-50%)',
     width: 240,
     background: '#fff',
@@ -346,7 +376,18 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     border: '1px solid #e5e7eb',
   }
 
-  const arrowStyle = {
+  // Arrow pointing to marker (position changes based on popup location)
+  const arrowStyle = adjustedPosition.popupBelow ? {
+    position: 'absolute',
+    top: -6,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 0,
+    height: 0,
+    borderLeft: '6px solid transparent',
+    borderRight: '6px solid transparent',
+    borderBottom: '6px solid white',
+  } : {
     position: 'absolute',
     bottom: -6,
     left: '50%',
@@ -359,7 +400,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
   }
 
   return (
-    <div style={popupStyle}>
+    <div ref={popupRef} style={popupStyle}>
       <div style={{
         position: 'relative', width: '100%',
         height: 100,
@@ -373,6 +414,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
             No photo
           </div>
         )}
+        
         <div style={{
           position: 'absolute', top: 6, left: 6,
           background: col.bg, color: '#fff',
@@ -381,6 +423,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
         }}>
           ${listing.price?.toLocaleString()}<span style={{ fontSize: 8 }}>/mo</span>
         </div>
+        
         <button onClick={onClose} style={{
           position: 'absolute', top: 4, right: 4,
           width: 20, height: 20, borderRadius: '50%',
@@ -390,6 +433,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
           border: 'none',
         }}>×</button>
       </div>
+
       <div style={{ padding: '6px 8px 8px' }}>
         <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
           {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
@@ -413,6 +457,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
           textDecoration: 'none',
         }}>View →</a>
       </div>
+      
       <div style={arrowStyle} />
     </div>
   )
