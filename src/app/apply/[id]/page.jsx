@@ -72,47 +72,21 @@ export default function ApplyPage() {
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
-      const { data: app } = await createApplication({
-        listing_id: id,
-        user_id: user?.id,
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone,
-        dob: form.dob,
-        current_address: form.current_address,
-        employment_status: form.employment_status,
-        employer: form.employer,
-        monthly_income: Number(form.monthly_income),
-        years_employed: form.years_employed,
-        landlord_name: form.landlord_name,
-        landlord_phone: form.landlord_phone,
-        reason_for_moving: form.reason_for_moving,
-        move_in_date: form.move_in_date,
-        intended_stay: form.intended_stay,
-        num_occupants: Number(form.num_occupants),
-        has_pets: form.has_pets,
-        pet_details: form.pet_details,
-        prior_eviction: form.prior_eviction,
-        criminal_history: form.criminal_history,
-        additional_notes: form.additional_notes,
-        status: 'pending',
-        payment_status: 'pending',
-      })
-
+      // Don't save to DB yet — pass form data to Stripe metadata
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listing_id: id,
           listing_title: listing?.title ?? 'Rental',
-          application_id: app?.id,
+          form_data: JSON.stringify(form), // store form in Stripe metadata
         }),
       })
 
       const { url, error } = await res.json()
       if (error) throw new Error(error)
-
       window.location.href = url
+
     } catch (e) {
       console.error(e)
       toast.error('Failed to process. Please try again.')

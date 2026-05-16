@@ -5,7 +5,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 export async function POST(req) {
   try {
-    const { listing_id, listing_title, application_id } = await req.json()
+    const { listing_id, listing_title, form_data } = await req.json()
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -18,16 +18,17 @@ export async function POST(req) {
               name: 'Rental Application Fee',
               description: `Application for ${listing_title}`,
             },
-            unit_amount: 5000, // $50 in cents
+            unit_amount: 5000,
           },
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/apply/complete?listing=${encodeURIComponent(listing_title)}&application_id=${application_id}&paid=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/apply/${listing_id}`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/apply/complete?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/rentals/${listing_id}`,
       metadata: {
         listing_id,
-        application_id,
+        listing_title,
+        form_data, // stored here temporarily
       },
     })
 
