@@ -355,7 +355,8 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     setAdjustedPosition({ x, y, popupBelow })
   }, [markerPosition])
 
-  if (!listing || !markerPosition) return null
+// 👇 ADD THIS SAFETY CHECK RIGHT HERE 👇
+  if (!listing || !markerPosition || typeof markerPosition.x !== 'number' || typeof markerPosition.y !== 'number') return null
 
   const col = PRICE_COLOR(listing.price || 0)
   const images = listing?.images ?? []
@@ -579,9 +580,25 @@ export default function RentalMapView({ listings = [] }) {
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
       const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
-      const marker = L.marker([l.lat, l.lng], { icon })
+      const marker = L.marker([l.lat, l.lng], { 
+        icon: icon,
+        tap: true,
+        bubblingMouseEvents: false
+      })
       marker.on('click', (e) => {
-        const point = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+        // Get marker position - works better on mobile
+        let point
+        try {
+          // Try to get position from the click event itself first (more reliable on mobile)
+          if (e.originalEvent && e.originalEvent.clientX) {
+            point = { x: e.originalEvent.clientX, y: e.originalEvent.clientY }
+          } else {
+            point = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+          }
+        } catch (err) {
+          // Fallback to viewport center if everything fails
+          point = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+        }
         setMarkerPosition({ x: point.x, y: point.y })
         setPopupListing(l)
         setActiveId(l.id)
