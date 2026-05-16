@@ -231,102 +231,109 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-function MapPopup({ listing, onClose, isMobile }) {
+function MapPopup({ listing, onClose, markerPosition }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
-  if (!listing) return null
+  if (!listing || !markerPosition) return null
 
   const col = PRICE_COLOR(listing.price || 0)
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
 
-  // Same style for both mobile and desktop - clean popup near marker
+  // Position popup above the marker
   const popupStyle = {
     position: 'absolute',
     zIndex: 1000,
-    bottom: 30,
-    left: '50%',
+    bottom: `calc(100vh - ${markerPosition.y}px + 10px)`,
+    left: `${markerPosition.x}px`,
     transform: 'translateX(-50%)',
-    width: isMobile ? 260 : 288,
+    width: 240,
     background: '#fff',
-    borderRadius: 16,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    borderRadius: 12,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
     overflow: 'hidden',
     border: '1px solid #e5e7eb',
-    animation: 'popIn 0.18s ease',
+  }
+
+  // Small arrow pointing to marker
+  const arrowStyle = {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 0,
+    height: 0,
+    borderLeft: '6px solid transparent',
+    borderRight: '6px solid transparent',
+    borderTop: '6px solid white',
+    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))',
   }
 
   return (
     <div style={popupStyle}>
-      <style>{`
-        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(0.9)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-      `}</style>
-
-      {/* Small image */}
+      {/* Image */}
       <div style={{
         position: 'relative', width: '100%',
-        height: isMobile ? 120 : 140,
+        height: 100,
         background: '#f3f4f6', overflow: 'hidden'
       }}>
         {activeUrl ? (
           <img src={activeUrl} alt={listing.title}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9ca3af' }}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>
             No photo
           </div>
         )}
         
         {/* Price badge */}
         <div style={{
-          position: 'absolute', top: 8, left: 8,
+          position: 'absolute', top: 6, left: 6,
           background: col.bg, color: '#fff',
-          padding: '2px 8px', borderRadius: 16,
-          fontSize: 12, fontWeight: 700,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+          padding: '2px 6px', borderRadius: 12,
+          fontSize: 10, fontWeight: 700,
         }}>
-          ${listing.price?.toLocaleString()}<span style={{ fontSize: 9, fontWeight: 400 }}>/mo</span>
+          ${listing.price?.toLocaleString()}<span style={{ fontSize: 8 }}>/mo</span>
         </div>
         
         {/* Close button */}
         <button onClick={onClose} style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 24, height: 24, borderRadius: '50%',
+          position: 'absolute', top: 4, right: 4,
+          width: 20, height: 20, borderRadius: '50%',
           background: 'rgba(0,0,0,0.5)',
-          color: '#fff', fontSize: 14, cursor: 'pointer',
+          color: '#fff', fontSize: 12, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: 'none',
-          WebkitTapHighlightColor: 'transparent',
         }}>×</button>
       </div>
 
       {/* Details */}
-      <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 12px 12px' }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2, lineHeight: 1.3 }}>
-          {listing.title.length > 35 ? listing.title.substring(0, 32) + '...' : listing.title}
+      <div style={{ padding: '6px 8px 8px' }}>
+        <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
+          {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
         </div>
-        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
           {listing.city}, {listing.state}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-          {[
-            `${listing.bedrooms} bed`,
-            `${listing.bathrooms} bath`,
-          ].filter(Boolean).map(t => (
-            <span key={t} style={{
-              fontSize: 10, padding: '2px 6px', borderRadius: 6,
-              background: '#f3f4f6', color: '#374151'
-            }}>{t}</span>
-          ))}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
+            {listing.bedrooms} bd
+          </span>
+          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
+            {listing.bathrooms} ba
+          </span>
         </div>
         <a href={`/rentals/${listing.id}`} style={{
           display: 'block', textAlign: 'center',
-          padding: isMobile ? '6px' : '7px', borderRadius: 8,
+          padding: '5px', borderRadius: 6,
           background: '#3b5bdb', color: '#fff',
-          fontSize: 12, fontWeight: 500,
+          fontSize: 11, fontWeight: 500,
           textDecoration: 'none',
-        }}>View details →</a>
+        }}>View →</a>
       </div>
+      
+      {/* Arrow pointing to marker */}
+      <div style={arrowStyle} />
     </div>
   )
 }
@@ -340,6 +347,7 @@ export default function RentalMapView({ listings = [] }) {
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
   const [isMapReady, setIsMapReady] = useState(false)
+  const [markerPosition, setMarkerPosition] = useState(null)
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price || 0)) : 5000
   const [filters, setFilters] = useState({ beds: 'Any', baths: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
