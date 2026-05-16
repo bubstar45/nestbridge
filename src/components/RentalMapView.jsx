@@ -240,110 +240,92 @@ function MapPopup({ listing, onClose, isMobile }) {
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
 
-  const mobileStyle = {
-    position: 'absolute', zIndex: 1000,
-    bottom: 0, left: 0, right: 0, width: '100%',
-    background: '#fff', borderRadius: '18px 18px 0 0',
-    boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'slideUp .2s ease',
-  }
-  const desktopStyle = {
-    position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
-    transform: 'translateX(-50%)', width: 288,
-    background: '#fff', borderRadius: 18,
-    boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'popIn .18s ease',
+  // Same style for both mobile and desktop - clean popup near marker
+  const popupStyle = {
+    position: 'absolute',
+    zIndex: 1000,
+    bottom: 30,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: isMobile ? 260 : 288,
+    background: '#fff',
+    borderRadius: 16,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    overflow: 'hidden',
+    border: '1px solid #e5e7eb',
+    animation: 'popIn 0.18s ease',
   }
 
   return (
-    <div style={isMobile ? mobileStyle : desktopStyle}>
+    <div style={popupStyle}>
       <style>{`
-        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(0.9)}to{opacity:1;transform:translateX(-50%) scale(1)}}
       `}</style>
 
-      {isMobile && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#d1d5db' }} />
-        </div>
-      )}
-
+      {/* Small image */}
       <div style={{
         position: 'relative', width: '100%',
-        height: isMobile ? 200 : 160,
+        height: isMobile ? 120 : 140,
         background: '#f3f4f6', overflow: 'hidden'
       }}>
         {activeUrl ? (
           <img src={activeUrl} alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }} />
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9ca3af' }}>
             No photo
           </div>
         )}
+        
+        {/* Price badge */}
         <div style={{
-          position: 'absolute', top: 10, left: 10,
+          position: 'absolute', top: 8, left: 8,
           background: col.bg, color: '#fff',
-          padding: '4px 12px', borderRadius: 20,
-          fontSize: 13, fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-          border: '1.5px solid rgba(255,255,255,0.3)'
+          padding: '2px 8px', borderRadius: 16,
+          fontSize: 12, fontWeight: 700,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
         }}>
-          ${listing.price?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>/mo</span>
+          ${listing.price?.toLocaleString()}<span style={{ fontSize: 9, fontWeight: 400 }}>/mo</span>
         </div>
+        
+        {/* Close button */}
         <button onClick={onClose} style={{
-          position: 'absolute', top: 8, right: 8,
-          width: 30, height: 30, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)',
-          color: '#fff', fontSize: 16, cursor: 'pointer',
+          position: 'absolute', top: 6, right: 6,
+          width: 24, height: 24, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff', fontSize: 14, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none',
           WebkitTapHighlightColor: 'transparent',
         }}>×</button>
-        {images.length > 1 && (
-          <div style={{
-            position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
-            display: 'flex', gap: 5
-          }}>
-            {images.slice(0, 6).map((_, i) => (
-              <button key={i} onClick={() => setImgIdx(i)} style={{
-                width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3,
-                background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)',
-                border: 'none', cursor: 'pointer', padding: 0,
-                transition: 'width .2s, background .2s'
-              }} />
-            ))}
-          </div>
-        )}
       </div>
 
-      <div style={{ padding: isMobile ? '14px 16px 20px' : '12px 14px 14px' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2, lineHeight: 1.35 }}>
-          {listing.title}
+      {/* Details */}
+      <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 12px 12px' }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: '#111', marginBottom: 2, lineHeight: 1.3 }}>
+          {listing.title.length > 35 ? listing.title.substring(0, 32) + '...' : listing.title}
         </div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>
+        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6 }}>
           {listing.city}, {listing.state}
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
           {[
             `${listing.bedrooms} bed`,
             `${listing.bathrooms} bath`,
-            listing.sqft ? `${listing.sqft?.toLocaleString()} sqft` : null,
           ].filter(Boolean).map(t => (
             <span key={t} style={{
-              fontSize: 11, padding: '3px 9px', borderRadius: 8,
+              fontSize: 10, padding: '2px 6px', borderRadius: 6,
               background: '#f3f4f6', color: '#374151'
             }}>{t}</span>
           ))}
         </div>
         <a href={`/rentals/${listing.id}`} style={{
           display: 'block', textAlign: 'center',
-          padding: isMobile ? '11px' : '9px', borderRadius: 10,
+          padding: isMobile ? '6px' : '7px', borderRadius: 8,
           background: '#3b5bdb', color: '#fff',
-          fontSize: 13, fontWeight: 600,
-          textDecoration: 'none', letterSpacing: 0.2
-        }}>View full listing</a>
+          fontSize: 12, fontWeight: 500,
+          textDecoration: 'none',
+        }}>View details →</a>
       </div>
     </div>
   )
