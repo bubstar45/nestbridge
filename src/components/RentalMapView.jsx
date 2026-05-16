@@ -231,7 +231,7 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-// Desktop popup (original style)
+// Desktop popup — centred floating card
 function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
@@ -248,241 +248,185 @@ function DesktopPopup({ listing, onClose }) {
       background: '#fff', borderRadius: 18,
       boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
       overflow: 'hidden', border: '1px solid #e5e7eb',
+      animation: 'popIn .18s ease',
     }}>
-      <div style={{
-        position: 'relative', width: '100%', height: 160,
-        background: '#f3f4f6', overflow: 'hidden'
-      }}>
+      <style>{`@keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
+      <div style={{ position: 'relative', width: '100%', height: 160, background: '#f3f4f6', overflow: 'hidden' }}>
         {activeUrl ? (
-          <img src={activeUrl} alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>
-            No photo
-          </div>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>No photo</div>
         )}
-        <div style={{
-          position: 'absolute', top: 10, left: 10,
-          background: col.bg, color: '#fff',
-          padding: '4px 12px', borderRadius: 20,
-          fontSize: 13, fontWeight: 700,
-        }}>
+        <div style={{ position: 'absolute', top: 10, left: 10, background: col.bg, color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
           ${listing.price?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400 }}>/mo</span>
         </div>
-        <button onClick={onClose} style={{
-          position: 'absolute', top: 8, right: 8,
-          width: 28, height: 28, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.5)',
-          color: '#fff', fontSize: 14, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>×</button>
+        <button onClick={onClose} style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none' }}>×</button>
         {images.length > 1 && (
-          <div style={{
-            position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
-            display: 'flex', gap: 5
-          }}>
+          <div style={{ position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
             {images.slice(0, 6).map((_, i) => (
-              <button key={i} onClick={() => setImgIdx(i)} style={{
-                width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3,
-                background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)',
-                border: 'none', cursor: 'pointer', padding: 0,
-              }} />
+              <button key={i} onClick={() => setImgIdx(i)} style={{ width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3, background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)', border: 'none', cursor: 'pointer', padding: 0, transition: 'width .2s' }} />
             ))}
           </div>
         )}
       </div>
       <div style={{ padding: '12px 14px 14px' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2 }}>
-          {listing.title}
-        </div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>
-          {listing.city}, {listing.state}
-        </div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2 }}>{listing.title}</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>{listing.city}, {listing.state}</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-          {[
-            `${listing.bedrooms} bed`,
-            `${listing.bathrooms} bath`,
-            listing.sqft ? `${listing.sqft?.toLocaleString()} sqft` : null,
-          ].filter(Boolean).map(t => (
-            <span key={t} style={{
-              fontSize: 11, padding: '3px 9px', borderRadius: 8,
-              background: '#f3f4f6', color: '#374151'
-            }}>{t}</span>
+          {[`${listing.bedrooms} bed`, `${listing.bathrooms} bath`, listing.sqft ? `${listing.sqft?.toLocaleString()} sqft` : null].filter(Boolean).map(t => (
+            <span key={t} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 8, background: '#f3f4f6', color: '#374151' }}>{t}</span>
           ))}
         </div>
-        <a href={`/rentals/${listing.id}`} style={{
-          display: 'block', textAlign: 'center',
-          padding: '9px', borderRadius: 10,
-          background: '#3b5bdb', color: '#fff',
-          fontSize: 13, fontWeight: 600,
-          textDecoration: 'none',
-        }}>View full listing</a>
+        <a href={`/rentals/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '9px', borderRadius: 10, background: '#3b5bdb', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View full listing</a>
       </div>
     </div>
   )
 }
 
-// Mobile popup (small, above marker with boundary checking)
-function MobilePopup({ listing, onClose, markerPosition }) {
+// Mobile popup — compact card anchored at container-relative coordinates
+function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   const [imgIdx, setImgIdx] = useState(0)
-  const [adjustedPosition, setAdjustedPosition] = useState({ x: 0, y: 0, popupBelow: false })
+  const [pos, setPos] = useState(null)
   const popupRef = useRef(null)
-  
-  useEffect(() => { setImgIdx(0) }, [listing?.id])
-  useEffect(() => {
-    if (!markerPosition || !popupRef.current) return
-    
-    // Get popup dimensions
-    const popupHeight = popupRef.current.offsetHeight
-    const popupWidth = popupRef.current.offsetWidth
-    
-    // Check if popup would go off screen
-    const wouldGoOffTop = markerPosition.y - popupHeight - 15 < 0
-    const wouldGoOffRight = markerPosition.x + popupWidth / 2 > window.innerWidth
-    const wouldGoOffLeft = markerPosition.x - popupWidth / 2 < 0
-    
-    // Adjust horizontal position
-    let x = markerPosition.x
-    if (wouldGoOffRight) x = window.innerWidth - popupWidth / 2 - 10
-    if (wouldGoOffLeft) x = popupWidth / 2 + 10
-    
-    // Position above or below marker
-    const popupBelow = wouldGoOffTop
-    let y = popupBelow 
-      ? markerPosition.y + 40  // below marker
-      : markerPosition.y - 15   // above marker
-    
-    setAdjustedPosition({ x, y, popupBelow })
-  }, [markerPosition])
 
-// 👇 ADD THIS SAFETY CHECK RIGHT HERE 👇
-  if (!listing || !markerPosition || typeof markerPosition.x !== 'number' || typeof markerPosition.y !== 'number') return null
+  useEffect(() => { setImgIdx(0) }, [listing?.id])
+
+  useEffect(() => {
+    // Recalculate whenever the marker position or the popup dimensions settle
+    if (!markerPosition || !popupRef.current || !mapContainerRef?.current) return
+
+    const containerRect = mapContainerRef.current.getBoundingClientRect()
+
+    // Convert viewport coords → container-relative coords
+    const cx = markerPosition.clientX - containerRect.left
+    const cy = markerPosition.clientY - containerRect.top
+
+    const popupW = popupRef.current.offsetWidth  || 240
+    const popupH = popupRef.current.offsetHeight || 220
+    const containerW = containerRect.width
+    const containerH = containerRect.height
+    const MARGIN = 10
+    const ARROW = 12  // space for the little arrow
+
+    // Prefer showing above the tap point; fall back to below
+    const spaceAbove = cy
+    const showBelow = spaceAbove < popupH + ARROW + MARGIN
+
+    // Clamp horizontally so popup never bleeds off the sides
+    let x = cx
+    x = Math.max(popupW / 2 + MARGIN, x)
+    x = Math.min(containerW - popupW / 2 - MARGIN, x)
+
+    const y = showBelow
+      ? cy + ARROW           // top edge of popup sits below finger
+      : cy - ARROW - popupH  // bottom edge of popup sits above finger
+
+    setPos({ x, y, showBelow })
+  }, [markerPosition, listing?.id])
+
+  if (!listing || !markerPosition) return null
 
   const col = PRICE_COLOR(listing.price || 0)
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
 
-  const popupStyle = {
-    position: 'absolute',
-    zIndex: 1000,
-    top: adjustedPosition.popupBelow ? `${adjustedPosition.y}px` : 'auto',
-    bottom: adjustedPosition.popupBelow ? 'auto' : 'auto',
-    left: `${adjustedPosition.x}px`,
-    transform: 'translateX(-50%)',
-    width: 240,
-    background: '#fff',
-    borderRadius: 12,
-    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-    overflow: 'hidden',
-    border: '1px solid #e5e7eb',
-  }
-
-  // Arrow pointing to marker (position changes based on popup location)
-  const arrowStyle = adjustedPosition.popupBelow ? {
-    position: 'absolute',
-    top: -6,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: 0,
-    height: 0,
-    borderLeft: '6px solid transparent',
-    borderRight: '6px solid transparent',
-    borderBottom: '6px solid white',
-  } : {
-    position: 'absolute',
-    bottom: -6,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: 0,
-    height: 0,
-    borderLeft: '6px solid transparent',
-    borderRight: '6px solid transparent',
-    borderTop: '6px solid white',
+  const arrowBase = {
+    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+    width: 0, height: 0,
+    borderLeft: '7px solid transparent',
+    borderRight: '7px solid transparent',
   }
 
   return (
-    <div ref={popupRef} style={popupStyle}>
-      <div style={{
-        position: 'relative', width: '100%',
-        height: 100,
-        background: '#f3f4f6', overflow: 'hidden'
-      }}>
-        {activeUrl ? (
-          <img src={activeUrl} alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>
-            No photo
-          </div>
-        )}
-        
-        <div style={{
-          position: 'absolute', top: 6, left: 6,
-          background: col.bg, color: '#fff',
-          padding: '2px 6px', borderRadius: 12,
-          fontSize: 10, fontWeight: 700,
-        }}>
-          ${listing.price?.toLocaleString()}<span style={{ fontSize: 8 }}>/mo</span>
-        </div>
-        
-        <button onClick={onClose} style={{
-          position: 'absolute', top: 4, right: 4,
-          width: 20, height: 20, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.5)',
-          color: '#fff', fontSize: 12, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: 'none',
-        }}>×</button>
-      </div>
+    // Invisible full-screen dimmer so tapping outside closes the popup
+    <div
+      onClick={() => onClose()}
+      style={{ position: 'absolute', inset: 0, zIndex: 999 }}
+    >
+      <div
+        ref={popupRef}
+        onClick={e => e.stopPropagation()} // don't close when tapping the card itself
+        style={{
+          position: 'absolute',
+          // Use initial off-screen position before we measure; once pos is set, use it
+          top: pos ? pos.y : -9999,
+          left: pos ? pos.x : -9999,
+          transform: 'translateX(-50%)',
+          width: 230,
+          background: '#fff',
+          borderRadius: 12,
+          boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
+          overflow: 'visible',  // allow arrow to poke out
+          border: '1px solid #e5e7eb',
+          animation: pos ? 'mPopIn .15s ease' : 'none',
+        }}
+      >
+        <style>{`@keyframes mPopIn{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
 
-      <div style={{ padding: '6px 8px 8px' }}>
-        <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
-          {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
+        {/* Arrow pointing toward the marker */}
+        {pos && (
+          pos.showBelow
+            ? <div style={{ ...arrowBase, top: -7, borderBottom: '7px solid #fff', filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.08))' }} />
+            : <div style={{ ...arrowBase, bottom: -7, borderTop: '7px solid #fff', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.08))' }} />
+        )}
+
+        {/* Image */}
+        <div style={{ position: 'relative', width: '100%', height: 110, background: '#f3f4f6', overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
+          {activeUrl
+            ? <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>No photo</div>
+          }
+          <div style={{ position: 'absolute', top: 6, left: 6, background: col.bg, color: '#fff', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+            ${listing.price?.toLocaleString()}<span style={{ fontSize: 9, fontWeight: 400 }}>/mo</span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
+          >×</button>
         </div>
-        <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
-          {listing.city}, {listing.state}
+
+        {/* Body */}
+        <div style={{ padding: '8px 10px 10px' }}>
+          <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {listing.title}
+          </div>
+          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
+            {listing.city}, {listing.state}
+          </div>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+            <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.bedrooms} bd</span>
+            <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.bathrooms} ba</span>
+            {listing.sqft && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.sqft.toLocaleString()} sqft</span>}
+          </div>
+          <a href={`/rentals/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '7px', borderRadius: 8, background: '#3b5bdb', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+            View full listing →
+          </a>
         </div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
-            {listing.bedrooms} bd
-          </span>
-          <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
-            {listing.bathrooms} ba
-          </span>
-        </div>
-        <a href={`/rentals/${listing.id}`} style={{
-          display: 'block', textAlign: 'center',
-          padding: '5px', borderRadius: 6,
-          background: '#3b5bdb', color: '#fff',
-          fontSize: 11, fontWeight: 500,
-          textDecoration: 'none',
-        }}>View →</a>
       </div>
-      
-      <div style={arrowStyle} />
     </div>
   )
 }
 
 export default function RentalMapView({ listings = [] }) {
   const mapRef = useRef(null)
+  const mapContainerRef = useRef(null)   // ← wraps the map div, used for coordinate math
   const mapInstanceRef = useRef(null)
   const clusterRef = useRef(null)
   const markersRef = useRef({})
   const LRef = useRef(null)
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
+  const [markerPosition, setMarkerPosition] = useState(null) // viewport clientX/clientY
   const [isMapReady, setIsMapReady] = useState(false)
-  const [markerPosition, setMarkerPosition] = useState(null)
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price || 0)) : 5000
   const [filters, setFilters] = useState({ beds: 'Any', baths: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
   const isMobile = useIsMobile()
 
+  // Initialize map once
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapInstanceRef.current) return
-
     let isMounted = true
 
     const initMap = async () => {
@@ -490,7 +434,6 @@ export default function RentalMapView({ listings = [] }) {
         const L = (await import('leaflet')).default
         window.L = L
         await import('leaflet.markercluster')
-
         if (!isMounted) return
         LRef.current = L
 
@@ -501,11 +444,7 @@ export default function RentalMapView({ listings = [] }) {
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
         })
 
-        const map = L.map(mapRef.current, {
-          zoomControl: false,
-          scrollWheelZoom: false,
-          tap: true,
-        })
+        const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: false, tap: true })
         mapInstanceRef.current = map
 
         const el = mapRef.current
@@ -519,23 +458,18 @@ export default function RentalMapView({ listings = [] }) {
         }).addTo(map)
 
         const cluster = L.markerClusterGroup({
-          chunkedLoading: true,
-          maxClusterRadius: 50,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: true,
-          zoomToBoundsOnClick: true,
+          chunkedLoading: true, maxClusterRadius: 50,
+          spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true,
           iconCreateFunction: function(cluster) {
-            const childCount = cluster.getChildCount();
+            const childCount = cluster.getChildCount()
             let bgColor = '#3b5bdb', w = 30
             if (childCount > 10) { bgColor = '#dc2626'; w = 46 }
             else if (childCount > 5) { bgColor = '#e8590c'; w = 38 }
             const fs = w === 46 ? 14 : w === 38 ? 12 : 11
             return L.divIcon({
               html: `<div style="background-color:${bgColor};width:${w}px;height:${w}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:${fs}px;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid white;">${childCount}</div>`,
-              className: '',
-              iconSize: [w, w],
-              iconAnchor: [w / 2, w / 2],
-            });
+              className: '', iconSize: [w, w], iconAnchor: [w / 2, w / 2],
+            })
           }
         })
         clusterRef.current = cluster
@@ -544,8 +478,7 @@ export default function RentalMapView({ listings = [] }) {
 
         const valid = listings.filter(l => l.lat && l.lng)
         if (valid.length && isMounted) {
-          const bounds = L.latLngBounds(valid.map(l => [l.lat, l.lng]))
-          map.fitBounds(bounds.pad(0.2))
+          map.fitBounds(L.latLngBounds(valid.map(l => [l.lat, l.lng])).pad(0.2))
         } else if (isMounted) {
           map.setView([39.5, -98.35], 4)
         }
@@ -555,7 +488,6 @@ export default function RentalMapView({ listings = [] }) {
     }
 
     initMap()
-
     return () => {
       isMounted = false
       if (mapInstanceRef.current) {
@@ -568,6 +500,7 @@ export default function RentalMapView({ listings = [] }) {
     }
   }, [listings])
 
+  // Sync markers
   useEffect(() => {
     if (!isMapReady) return
     const L = LRef.current
@@ -580,34 +513,37 @@ export default function RentalMapView({ listings = [] }) {
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
       const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
-      const marker = L.marker([l.lat, l.lng], { 
-        icon: icon,
-        tap: true,
-        bubblingMouseEvents: false
-      })
+      const marker = L.marker([l.lat, l.lng], { icon, tap: true, bubblingMouseEvents: false })
+
       marker.on('click', (e) => {
-        // Get marker position - works better on mobile
-        let point
-        try {
-          // Try to get position from the click event itself first (more reliable on mobile)
-          if (e.originalEvent && e.originalEvent.clientX) {
-            point = { x: e.originalEvent.clientX, y: e.originalEvent.clientY }
-          } else {
-            point = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+        // Store raw viewport coords — MobilePopup converts them to container-relative
+        const ev = e.originalEvent
+        const clientX = ev?.clientX ?? ev?.touches?.[0]?.clientX
+        const clientY = ev?.clientY ?? ev?.touches?.[0]?.clientY
+
+        if (clientX != null && clientY != null) {
+          setMarkerPosition({ clientX, clientY })
+        } else {
+          // Absolute fallback: use Leaflet's container point
+          try {
+            const pt = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+            const rect = mapContainerRef.current.getBoundingClientRect()
+            setMarkerPosition({ clientX: rect.left + pt.x, clientY: rect.top + pt.y })
+          } catch (_) {
+            setMarkerPosition({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 })
           }
-        } catch (err) {
-          // Fallback to viewport center if everything fails
-          point = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
         }
-        setMarkerPosition({ x: point.x, y: point.y })
+
         setPopupListing(l)
         setActiveId(l.id)
       })
+
       markersRef.current[l.id] = marker
       cluster.addLayer(marker)
     })
   }, [filtered, isMapReady])
 
+  // Highlight active marker pill
   useEffect(() => {
     Object.entries(markersRef.current).forEach(([id, marker]) => {
       const el = marker.getElement()
@@ -631,10 +567,17 @@ export default function RentalMapView({ listings = [] }) {
 
   const handleSidebarHover = useCallback((id) => setActiveId(id), [])
 
+  const closePopup = useCallback(() => {
+    setPopupListing(null)
+    setActiveId(null)
+    setMarkerPosition(null)
+  }, [])
+
   const mapPanel = (
-    <div style={{ flex: 1, position: 'relative' }}>
+    <div ref={mapContainerRef} style={{ flex: 1, position: 'relative' }}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
 
+      {/* Price legend */}
       <div style={{
         position: 'absolute', bottom: 20, left: 14, zIndex: 500,
         background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
@@ -654,6 +597,7 @@ export default function RentalMapView({ listings = [] }) {
         ))}
       </div>
 
+      {/* Fit all button */}
       <button
         onClick={() => {
           const map = mapInstanceRef.current
@@ -669,34 +613,37 @@ export default function RentalMapView({ listings = [] }) {
           fontSize: 12, color: '#374151', cursor: 'pointer',
           boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
           display: 'flex', alignItems: 'center', gap: 5,
+          WebkitTapHighlightColor: 'transparent',
         }}
       >Fit all listings</button>
 
       {isMobile ? (
         <MobilePopup
           listing={popupListing}
-          onClose={() => { setPopupListing(null); setActiveId(null); setMarkerPosition(null) }}
+          onClose={closePopup}
           markerPosition={markerPosition}
+          mapContainerRef={mapContainerRef}
         />
       ) : (
         <DesktopPopup
           listing={popupListing}
-          onClose={() => { setPopupListing(null); setActiveId(null) }}
+          onClose={closePopup}
         />
       )}
     </div>
   )
 
+  const cssLinks = <>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  </>
+
+  // ── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        width: '100%', height: '100svh',
-        fontFamily: 'system-ui, sans-serif', overflow: 'hidden',
-      }}>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100svh', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+        {cssLinks}
         <StatsBar listings={filtered} />
         <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={true} />
         {mapPanel}
@@ -704,20 +651,14 @@ export default function RentalMapView({ listings = [] }) {
     )
   }
 
+  // ── DESKTOP ──────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+      {cssLinks}
       <StatsBar listings={filtered} />
       <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={false} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <ListingSidebar
-          listings={filtered}
-          activeId={activeId}
-          onHover={handleSidebarHover}
-          onClick={handleSidebarClick}
-        />
+        <ListingSidebar listings={filtered} activeId={activeId} onHover={handleSidebarHover} onClick={handleSidebarClick} />
         {mapPanel}
       </div>
     </div>
