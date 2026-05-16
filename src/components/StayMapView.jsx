@@ -281,14 +281,13 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-// Mobile popup with improved positioning and boundary checking
+// Mobile popup (small, above marker with boundary checking) - EXACT pattern from RentalMapView
 function MobilePopup({ listing, onClose, markerPosition }) {
   const [imgIdx, setImgIdx] = useState(0)
   const [adjustedPosition, setAdjustedPosition] = useState({ x: 0, y: 0, popupBelow: false })
   const popupRef = useRef(null)
   
   useEffect(() => { setImgIdx(0) }, [listing?.id])
-  
   useEffect(() => {
     if (!markerPosition || !popupRef.current) return
     
@@ -315,7 +314,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     setAdjustedPosition({ x, y, popupBelow })
   }, [markerPosition])
 
-  // Safety check
+  // 👇 SAFETY CHECK - same as RentalMapView 👇
   if (!listing || !markerPosition || typeof markerPosition.x !== 'number' || typeof markerPosition.y !== 'number') return null
 
   const col = PRICE_COLOR(listing.price_per_night || 0)
@@ -330,7 +329,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     bottom: adjustedPosition.popupBelow ? 'auto' : 'auto',
     left: `${adjustedPosition.x}px`,
     transform: 'translateX(-50%)',
-    width: 260,
+    width: 240,
     background: '#fff',
     borderRadius: 12,
     boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
@@ -338,7 +337,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     border: '1px solid #e5e7eb',
   }
 
-  // Arrow pointing to marker
+  // Arrow pointing to marker (position changes based on popup location)
   const arrowStyle = adjustedPosition.popupBelow ? {
     position: 'absolute',
     top: -6,
@@ -365,7 +364,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
     <div ref={popupRef} style={popupStyle}>
       <div style={{
         position: 'relative', width: '100%',
-        height: 120,
+        height: 100,
         background: '#f3f4f6', overflow: 'hidden'
       }}>
         {activeUrl ? (
@@ -407,14 +406,14 @@ function MobilePopup({ listing, onClose, markerPosition }) {
         }}>×</button>
       </div>
 
-      <div style={{ padding: '8px 10px 10px' }}>
+      <div style={{ padding: '6px 8px 8px' }}>
         <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
           {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
         </div>
-        <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
           {listing.city}, {listing.state}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
           {listing.bedrooms != null && (
             <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: '#f3f4f6' }}>
               {listing.bedrooms} bd
@@ -433,7 +432,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
         </div>
         <a href={`/stays/${listing.id}`} style={{
           display: 'block', textAlign: 'center',
-          padding: '6px', borderRadius: 6,
+          padding: '5px', borderRadius: 6,
           background: '#e8590c', color: '#fff',
           fontSize: 11, fontWeight: 500,
           textDecoration: 'none',
@@ -445,7 +444,7 @@ function MobilePopup({ listing, onClose, markerPosition }) {
   )
 }
 
-// Desktop popup (simpler, centered at bottom)
+// Desktop popup (original style - centered at bottom)
 function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
@@ -677,7 +676,7 @@ export default function StayMapView({ listings = [] }) {
         bubblingMouseEvents: false
       })
       
-      // Improved click handler with position detection
+      // IMPROVED CLICK HANDLER - EXACT pattern from RentalMapView
       marker.on('click', (e) => {
         // Get marker position - works better on mobile
         let point
