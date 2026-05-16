@@ -231,7 +231,99 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-function MapPopup({ listing, onClose, markerPosition }) {
+// Desktop popup (original style)
+function DesktopPopup({ listing, onClose }) {
+  const [imgIdx, setImgIdx] = useState(0)
+  useEffect(() => { setImgIdx(0) }, [listing?.id])
+  if (!listing) return null
+
+  const col = PRICE_COLOR(listing.price || 0)
+  const images = listing?.images ?? []
+  const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
+
+  return (
+    <div style={{
+      position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
+      transform: 'translateX(-50%)', width: 288,
+      background: '#fff', borderRadius: 18,
+      boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
+      overflow: 'hidden', border: '1px solid #e5e7eb',
+    }}>
+      <div style={{
+        position: 'relative', width: '100%', height: 160,
+        background: '#f3f4f6', overflow: 'hidden'
+      }}>
+        {activeUrl ? (
+          <img src={activeUrl} alt={listing.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>
+            No photo
+          </div>
+        )}
+        <div style={{
+          position: 'absolute', top: 10, left: 10,
+          background: col.bg, color: '#fff',
+          padding: '4px 12px', borderRadius: 20,
+          fontSize: 13, fontWeight: 700,
+        }}>
+          ${listing.price?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400 }}>/mo</span>
+        </div>
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 8, right: 8,
+          width: 28, height: 28, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff', fontSize: 14, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>×</button>
+        {images.length > 1 && (
+          <div style={{
+            position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', gap: 5
+          }}>
+            {images.slice(0, 6).map((_, i) => (
+              <button key={i} onClick={() => setImgIdx(i)} style={{
+                width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3,
+                background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)',
+                border: 'none', cursor: 'pointer', padding: 0,
+              }} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '12px 14px 14px' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2 }}>
+          {listing.title}
+        </div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>
+          {listing.city}, {listing.state}
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          {[
+            `${listing.bedrooms} bed`,
+            `${listing.bathrooms} bath`,
+            listing.sqft ? `${listing.sqft?.toLocaleString()} sqft` : null,
+          ].filter(Boolean).map(t => (
+            <span key={t} style={{
+              fontSize: 11, padding: '3px 9px', borderRadius: 8,
+              background: '#f3f4f6', color: '#374151'
+            }}>{t}</span>
+          ))}
+        </div>
+        <a href={`/rentals/${listing.id}`} style={{
+          display: 'block', textAlign: 'center',
+          padding: '9px', borderRadius: 10,
+          background: '#3b5bdb', color: '#fff',
+          fontSize: 13, fontWeight: 600,
+          textDecoration: 'none',
+        }}>View full listing</a>
+      </div>
+    </div>
+  )
+}
+
+// Mobile popup (small, above marker)
+function MobilePopup({ listing, onClose, markerPosition }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
   if (!listing || !markerPosition) return null
@@ -240,7 +332,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
 
-  // Position popup above the marker
   const popupStyle = {
     position: 'absolute',
     zIndex: 1000,
@@ -255,7 +346,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
     border: '1px solid #e5e7eb',
   }
 
-  // Small arrow pointing to marker
   const arrowStyle = {
     position: 'absolute',
     bottom: -6,
@@ -266,12 +356,10 @@ function MapPopup({ listing, onClose, markerPosition }) {
     borderLeft: '6px solid transparent',
     borderRight: '6px solid transparent',
     borderTop: '6px solid white',
-    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))',
   }
 
   return (
     <div style={popupStyle}>
-      {/* Image */}
       <div style={{
         position: 'relative', width: '100%',
         height: 100,
@@ -285,8 +373,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
             No photo
           </div>
         )}
-        
-        {/* Price badge */}
         <div style={{
           position: 'absolute', top: 6, left: 6,
           background: col.bg, color: '#fff',
@@ -295,8 +381,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
         }}>
           ${listing.price?.toLocaleString()}<span style={{ fontSize: 8 }}>/mo</span>
         </div>
-        
-        {/* Close button */}
         <button onClick={onClose} style={{
           position: 'absolute', top: 4, right: 4,
           width: 20, height: 20, borderRadius: '50%',
@@ -306,8 +390,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
           border: 'none',
         }}>×</button>
       </div>
-
-      {/* Details */}
       <div style={{ padding: '6px 8px 8px' }}>
         <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 2 }}>
           {listing.title.length > 30 ? listing.title.substring(0, 27) + '...' : listing.title}
@@ -331,8 +413,6 @@ function MapPopup({ listing, onClose, markerPosition }) {
           textDecoration: 'none',
         }}>View →</a>
       </div>
-      
-      {/* Arrow pointing to marker */}
       <div style={arrowStyle} />
     </div>
   )
@@ -353,7 +433,6 @@ export default function RentalMapView({ listings = [] }) {
   const filtered = applyFilters(listings, filters)
   const isMobile = useIsMobile()
 
-  // Initialize map (only once)
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapInstanceRef.current) return
@@ -456,7 +535,12 @@ export default function RentalMapView({ listings = [] }) {
       if (!l.lat || !l.lng) return
       const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
       const marker = L.marker([l.lat, l.lng], { icon })
-      marker.on('click', () => { setPopupListing(l); setActiveId(l.id) })
+      marker.on('click', (e) => {
+        const point = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+        setMarkerPosition({ x: point.x, y: point.y })
+        setPopupListing(l)
+        setActiveId(l.id)
+      })
       markersRef.current[l.id] = marker
       cluster.addLayer(marker)
     })
@@ -489,7 +573,6 @@ export default function RentalMapView({ listings = [] }) {
     <div style={{ flex: 1, position: 'relative' }}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
 
-      {/* Price legend */}
       <div style={{
         position: 'absolute', bottom: 20, left: 14, zIndex: 500,
         background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
@@ -509,7 +592,6 @@ export default function RentalMapView({ listings = [] }) {
         ))}
       </div>
 
-      {/* Fit all button */}
       <button
         onClick={() => {
           const map = mapInstanceRef.current
@@ -525,19 +607,24 @@ export default function RentalMapView({ listings = [] }) {
           fontSize: 12, color: '#374151', cursor: 'pointer',
           boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
           display: 'flex', alignItems: 'center', gap: 5,
-          WebkitTapHighlightColor: 'transparent',
         }}
       >Fit all listings</button>
 
-      <MapPopup
-        listing={popupListing}
-        onClose={() => { setPopupListing(null); setActiveId(null) }}
-        isMobile={isMobile}
-      />
+      {isMobile ? (
+        <MobilePopup
+          listing={popupListing}
+          onClose={() => { setPopupListing(null); setActiveId(null); setMarkerPosition(null) }}
+          markerPosition={markerPosition}
+        />
+      ) : (
+        <DesktopPopup
+          listing={popupListing}
+          onClose={() => { setPopupListing(null); setActiveId(null) }}
+        />
+      )}
     </div>
   )
 
-  // ── MOBILE: stats + filters + full-screen map ────────────────────────────
   if (isMobile) {
     return (
       <div style={{
@@ -555,7 +642,6 @@ export default function RentalMapView({ listings = [] }) {
     )
   }
 
-  // ── DESKTOP (unchanged) ──────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
