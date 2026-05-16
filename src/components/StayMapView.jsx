@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useRef, useState, useCallback } from 'react'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
@@ -52,7 +53,6 @@ function applyFilters(listings, filters) {
   })
 }
 
-// ─── Mobile detection hook (same as rental map) ────────────────────────────
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -65,7 +65,6 @@ function useIsMobile() {
   return isMobile
 }
 
-// ─── Stats bar ─────────────────────────────────────────────────────────────
 function StatsBar({ listings }) {
   const avg = listings.length
     ? Math.round(listings.reduce((s, l) => s + (l.price_per_night || 0), 0) / listings.length)
@@ -97,79 +96,125 @@ function StatsBar({ listings }) {
   )
 }
 
-// ─── Filter bar ────────────────────────────────────────────────────────────
 function FilterBar({ filters, setFilters, listings, isMobile }) {
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price_per_night || 0)) : 1000
   const isDirty = filters.guests !== 'Any' || filters.type !== 'Any' || filters.maxPrice < maxPrice
 
-  const btnStyle = (active) => ({
-    fontSize: 11,
-    padding: isMobile ? '3px 7px' : '3px 8px',
-    borderRadius: 12,
-    border: `1px solid ${active ? '#e8590c' : '#d1d5db'}`,
-    background: active ? '#fff7ed' : '#fff',
-    color: active ? '#e8590c' : '#374151',
-    cursor: 'pointer',
-    fontWeight: active ? 600 : 400,
-    WebkitTapHighlightColor: 'transparent',
-    flexShrink: 0,
-  })
+  if (isMobile) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '6px 10px',
+        borderBottom: '1px solid #e5e7eb', background: '#fafafa',
+        flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+      }}>
+        <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500, flexShrink: 0 }}>Filters:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: '#374151', whiteSpace: 'nowrap' }}>
+            {filters.maxPrice >= maxPrice ? 'Any price' : `≤ $${filters.maxPrice}`}
+          </span>
+          <input type="range" min={10} max={maxPrice} step={10}
+            value={filters.maxPrice}
+            onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))}
+            style={{ width: 60, accentColor: '#e8590c' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>Guests:</span>
+          {GUEST_OPTIONS.map(g => (
+            <button key={g} onClick={() => setFilters(f => ({ ...f, guests: g }))}
+              style={{
+                fontSize: 11, padding: '3px 7px', borderRadius: 12,
+                border: `1px solid ${filters.guests === g ? '#e8590c' : '#d1d5db'}`,
+                background: filters.guests === g ? '#fff7ed' : '#fff',
+                color: filters.guests === g ? '#e8590c' : '#374151',
+                cursor: 'pointer', fontWeight: filters.guests === g ? 600 : 400,
+                WebkitTapHighlightColor: 'transparent',
+              }}>{g}</button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>Type:</span>
+          {TYPE_OPTIONS.map(t => (
+            <button key={t} onClick={() => setFilters(f => ({ ...f, type: t }))}
+              style={{
+                fontSize: 11, padding: '3px 7px', borderRadius: 12,
+                border: `1px solid ${filters.type === t ? '#e8590c' : '#d1d5db'}`,
+                background: filters.type === t ? '#fff7ed' : '#fff',
+                color: filters.type === t ? '#e8590c' : '#374151',
+                cursor: 'pointer', fontWeight: filters.type === t ? 600 : 400,
+                WebkitTapHighlightColor: 'transparent',
+              }}>{t}</button>
+          ))}
+        </div>
+        {isDirty && (
+          <button onClick={() => setFilters({ guests: 'Any', type: 'Any', maxPrice })}
+            style={{
+              fontSize: 11, padding: '3px 10px', borderRadius: 12, marginLeft: 4,
+              border: '1px solid #fca5a5', background: '#fef2f2',
+              color: '#dc2626', cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+            }}>Clear</button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8,
-      padding: isMobile ? '6px 10px' : '8px 14px',
+      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
       borderBottom: '1px solid #e5e7eb', background: '#fafafa',
-      flexShrink: 0, flexWrap: 'wrap',
-      overflowX: isMobile ? 'auto' : undefined,
-      WebkitOverflowScrolling: 'touch',
+      flexShrink: 0, flexWrap: 'wrap'
     }}>
-      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500, flexShrink: 0 }}>Filters:</span>
-
-      {/* Price slider */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-        <span style={{ fontSize: 12, color: '#374151', whiteSpace: 'nowrap' }}>
-          {filters.maxPrice >= maxPrice ? 'Any price' : `≤ $${filters.maxPrice}/nt`}
+      <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Filters:</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 12, color: '#374151' }}>
+          {filters.maxPrice >= maxPrice ? 'Any price' : `<= $${filters.maxPrice}/nt`}
         </span>
         <input type="range" min={10} max={maxPrice} step={10}
           value={filters.maxPrice}
           onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))}
-          style={{ width: isMobile ? 60 : 80, accentColor: '#e8590c' }}
+          style={{ width: 80, accentColor: '#e8590c' }}
         />
       </div>
-
-      {/* Guests */}
-      <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
         <span style={{ fontSize: 12, color: '#6b7280' }}>Guests:</span>
         {GUEST_OPTIONS.map(g => (
           <button key={g} onClick={() => setFilters(f => ({ ...f, guests: g }))}
-            style={btnStyle(filters.guests === g)}>{g}</button>
+            style={{
+              fontSize: 11, padding: '3px 8px', borderRadius: 12,
+              border: `1px solid ${filters.guests === g ? '#e8590c' : '#d1d5db'}`,
+              background: filters.guests === g ? '#fff7ed' : '#fff',
+              color: filters.guests === g ? '#e8590c' : '#374151',
+              cursor: 'pointer', fontWeight: filters.guests === g ? 600 : 400
+            }}>{g}</button>
         ))}
       </div>
-
-      {/* Type */}
-      <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
         <span style={{ fontSize: 12, color: '#6b7280' }}>Type:</span>
         {TYPE_OPTIONS.map(t => (
           <button key={t} onClick={() => setFilters(f => ({ ...f, type: t }))}
-            style={btnStyle(filters.type === t)}>{t}</button>
+            style={{
+              fontSize: 11, padding: '3px 8px', borderRadius: 12,
+              border: `1px solid ${filters.type === t ? '#e8590c' : '#d1d5db'}`,
+              background: filters.type === t ? '#fff7ed' : '#fff',
+              color: filters.type === t ? '#e8590c' : '#374151',
+              cursor: 'pointer', fontWeight: filters.type === t ? 600 : 400
+            }}>{t}</button>
         ))}
       </div>
-
       {isDirty && (
         <button onClick={() => setFilters({ guests: 'Any', type: 'Any', maxPrice })}
           style={{
-            fontSize: 11, padding: '3px 10px', borderRadius: 12, flexShrink: 0,
+            fontSize: 11, padding: '3px 10px', borderRadius: 12, marginLeft: 4,
             border: '1px solid #fca5a5', background: '#fef2f2',
-            color: '#dc2626', cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
-          }}>Clear ×</button>
+            color: '#dc2626', cursor: 'pointer'
+          }}>Clear x</button>
       )}
     </div>
   )
 }
 
-// ─── Desktop sidebar (unchanged) ───────────────────────────────────────────
 function ListingSidebar({ listings, activeId, onHover, onClick }) {
   return (
     <div style={{
@@ -234,8 +279,133 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-// ─── Popup — bottom-sheet on mobile, centred card on desktop ───────────────
-function MapPopup({ listing, onClose, isMobile }) {
+// Mobile popup — compact card anchored at container-relative coordinates
+function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
+  const [imgIdx, setImgIdx] = useState(0)
+  const [pos, setPos] = useState(null)
+  const popupRef = useRef(null)
+
+  useEffect(() => { setImgIdx(0) }, [listing?.id])
+
+  useEffect(() => {
+    if (!markerPosition || !popupRef.current || !mapContainerRef?.current) return
+
+    const containerRect = mapContainerRef.current.getBoundingClientRect()
+
+    // Convert viewport coords → container-relative coords
+    const cx = markerPosition.clientX - containerRect.left
+    const cy = markerPosition.clientY - containerRect.top
+
+    const popupW = popupRef.current.offsetWidth  || 240
+    const popupH = popupRef.current.offsetHeight || 220
+    const containerW = containerRect.width
+    const MARGIN = 10
+    const ARROW = 12
+
+    const spaceAbove = cy
+    const showBelow = spaceAbove < popupH + ARROW + MARGIN
+
+    let x = cx
+    x = Math.max(popupW / 2 + MARGIN, x)
+    x = Math.min(containerW - popupW / 2 - MARGIN, x)
+
+    const y = showBelow
+      ? cy + ARROW
+      : cy - ARROW - popupH
+
+    setPos({ x, y, showBelow })
+  }, [markerPosition, listing?.id])
+
+  if (!listing || !markerPosition) return null
+
+  const col = PRICE_COLOR(listing.price_per_night || 0)
+  const images = listing?.images ?? []
+  const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
+  const rating = listing.rating ?? listing.avg_rating
+
+  const arrowBase = {
+    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+    width: 0, height: 0,
+    borderLeft: '7px solid transparent',
+    borderRight: '7px solid transparent',
+  }
+
+  return (
+    // Invisible full-screen dimmer — tap outside to close
+    <div
+      onClick={() => onClose()}
+      style={{ position: 'absolute', inset: 0, zIndex: 999 }}
+    >
+      <div
+        ref={popupRef}
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          top: pos ? pos.y : -9999,
+          left: pos ? pos.x : -9999,
+          transform: 'translateX(-50%)',
+          width: 230,
+          background: '#fff',
+          borderRadius: 12,
+          boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
+          overflow: 'visible',
+          border: '1px solid #e5e7eb',
+          animation: pos ? 'mPopIn .15s ease' : 'none',
+        }}
+      >
+        <style>{`@keyframes mPopIn{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
+
+        {/* Arrow */}
+        {pos && (
+          pos.showBelow
+            ? <div style={{ ...arrowBase, top: -7, borderBottom: '7px solid #fff', filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.08))' }} />
+            : <div style={{ ...arrowBase, bottom: -7, borderTop: '7px solid #fff', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.08))' }} />
+        )}
+
+        {/* Image */}
+        <div style={{ position: 'relative', width: '100%', height: 110, background: '#f3f4f6', overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
+          {activeUrl
+            ? <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>No photo</div>
+          }
+          <div style={{ position: 'absolute', top: 6, left: 6, background: col.bg, color: '#fff', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+            ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 9, fontWeight: 400 }}>/nt</span>
+          </div>
+          {rating != null && (
+            <div style={{ position: 'absolute', top: 6, right: 28, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '2px 6px', borderRadius: 12, fontSize: 10, fontWeight: 600 }}>
+              ★ {Number(rating).toFixed(1)}
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
+          >×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '8px 10px 10px' }}>
+          <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {listing.title}
+          </div>
+          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
+            {listing.city}, {listing.state}
+          </div>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+            {listing.bedrooms != null && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.bedrooms} bd</span>}
+            {listing.max_guests != null && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.max_guests} guests</span>}
+            {listing.type && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.type === 'Entire place' ? 'Entire' : listing.type === 'Private room' ? 'Private' : 'Shared'}</span>}
+          </div>
+          <a href={`/stays/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '7px', borderRadius: 8, background: '#e8590c', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+            View stay →
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Desktop popup — centred floating card
+function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
   if (!listing) return null
@@ -245,112 +415,41 @@ function MapPopup({ listing, onClose, isMobile }) {
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
   const rating = listing.rating ?? listing.avg_rating
 
-  const mobileStyle = {
-    position: 'absolute', zIndex: 1000,
-    bottom: 0, left: 0, right: 0, width: '100%',
-    background: '#fff', borderRadius: '18px 18px 0 0',
-    boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'slideUp .2s ease',
-  }
-  const desktopStyle = {
-    position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
-    transform: 'translateX(-50%)', width: 288,
-    background: '#fff', borderRadius: 18,
-    boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
-    overflow: 'hidden', border: '1px solid #e5e7eb',
-    animation: 'popIn .18s ease',
-  }
-
   return (
-    <div style={isMobile ? mobileStyle : desktopStyle}>
-      <style>{`
-        @keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-      `}</style>
-
-      {/* Drag handle (mobile only) */}
-      {isMobile && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#d1d5db' }} />
+    <div style={{
+      position: 'absolute', zIndex: 1000, bottom: 24, left: '50%',
+      transform: 'translateX(-50%)', width: 288,
+      background: '#fff', borderRadius: 18,
+      boxShadow: '0 12px 48px rgba(0,0,0,0.22)',
+      overflow: 'hidden', border: '1px solid #e5e7eb',
+      animation: 'popIn .18s ease',
+    }}>
+      <style>{`@keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
+      <div style={{ position: 'relative', width: '100%', height: 160, background: '#f3f4f6', overflow: 'hidden' }}>
+        {activeUrl
+          ? <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>No photo</div>
+        }
+        <div style={{ position: 'absolute', top: 10, left: 10, background: col.bg, color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
+          ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400 }}>/nt</span>
         </div>
-      )}
-
-      {/* Image area */}
-      <div style={{
-        position: 'relative', width: '100%',
-        height: isMobile ? 200 : 160,
-        background: '#f3f4f6', overflow: 'hidden'
-      }}>
-        {activeUrl ? (
-          <img src={activeUrl} alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity .2s' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>
-            No photo
-          </div>
-        )}
-
-        {/* Price badge */}
-        <div style={{
-          position: 'absolute', top: 10, left: 10,
-          background: col.bg, color: '#fff',
-          padding: '4px 12px', borderRadius: 20,
-          fontSize: 13, fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-          border: '1.5px solid rgba(255,255,255,0.3)'
-        }}>
-          ${listing.price_per_night?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>/night</span>
-        </div>
-
-        {/* Rating badge */}
         {rating != null && (
-          <div style={{
-            position: 'absolute', top: 10, right: 42,
-            background: 'rgba(0,0,0,0.55)', color: '#fff',
-            padding: '4px 9px', borderRadius: 20,
-            fontSize: 12, fontWeight: 600,
-          }}>
+          <div style={{ position: 'absolute', top: 10, right: 42, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '4px 9px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
             ★ {Number(rating).toFixed(1)}
           </div>
         )}
-
-        {/* Close button */}
-        <button onClick={onClose} style={{
-          position: 'absolute', top: 8, right: 8,
-          width: 30, height: 30, borderRadius: '50%',
-          background: 'rgba(0,0,0,0.5)', border: '1.5px solid rgba(255,255,255,0.2)',
-          color: '#fff', fontSize: 16, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          WebkitTapHighlightColor: 'transparent',
-        }}>×</button>
-
-        {/* Image dots */}
+        <button onClick={onClose} style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none' }}>×</button>
         {images.length > 1 && (
-          <div style={{
-            position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)',
-            display: 'flex', gap: 5
-          }}>
+          <div style={{ position: 'absolute', bottom: 9, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
             {images.slice(0, 6).map((_, i) => (
-              <button key={i} onClick={() => setImgIdx(i)} style={{
-                width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3,
-                background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)',
-                border: 'none', cursor: 'pointer', padding: 0,
-                transition: 'width .2s, background .2s'
-              }} />
+              <button key={i} onClick={() => setImgIdx(i)} style={{ width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3, background: i === imgIdx ? '#fff' : 'rgba(255,255,255,0.5)', border: 'none', cursor: 'pointer', padding: 0, transition: 'width .2s' }} />
             ))}
           </div>
         )}
       </div>
-
-      {/* Info area */}
-      <div style={{ padding: isMobile ? '14px 16px 20px' : '12px 14px 14px' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2, lineHeight: 1.35 }}>
-          {listing.title}
-        </div>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>
-          {listing.city}, {listing.state}
-        </div>
+      <div style={{ padding: '12px 14px 14px' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#111', marginBottom: 2 }}>{listing.title}</div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 9 }}>{listing.city}, {listing.state}</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
           {[
             listing.bedrooms != null ? `${listing.bedrooms} bed` : null,
@@ -358,40 +457,31 @@ function MapPopup({ listing, onClose, isMobile }) {
             listing.max_guests != null ? `${listing.max_guests} guests` : null,
             listing.type ?? null,
           ].filter(Boolean).map(t => (
-            <span key={t} style={{
-              fontSize: 11, padding: '3px 9px', borderRadius: 8,
-              background: '#f3f4f6', color: '#374151'
-            }}>{t}</span>
+            <span key={t} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 8, background: '#f3f4f6', color: '#374151' }}>{t}</span>
           ))}
         </div>
-        <a href={`/stays/${listing.id}`} style={{
-          display: 'block', textAlign: 'center',
-          padding: isMobile ? '11px' : '9px', borderRadius: 10,
-          background: '#e8590c', color: '#fff',
-          fontSize: 13, fontWeight: 600,
-          textDecoration: 'none', letterSpacing: 0.2
-        }}>View stay</a>
+        <a href={`/stays/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '9px', borderRadius: 10, background: '#e8590c', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View stay</a>
       </div>
     </div>
   )
 }
 
-// ─── Main component ─────────────────────────────────────────────────────────
 export default function StayMapView({ listings = [] }) {
   const mapRef = useRef(null)
+  const mapContainerRef = useRef(null)  // ← used for coordinate conversion
   const mapInstanceRef = useRef(null)
   const clusterRef = useRef(null)
   const markersRef = useRef({})
   const LRef = useRef(null)
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
+  const [markerPosition, setMarkerPosition] = useState(null) // viewport clientX/clientY
   const [isMapReady, setIsMapReady] = useState(false)
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price_per_night || 0)) : 1000
   const [filters, setFilters] = useState({ guests: 'Any', type: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
   const isMobile = useIsMobile()
 
-  // Initialize map once
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapInstanceRef.current) return
@@ -412,11 +502,7 @@ export default function StayMapView({ listings = [] }) {
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
         })
 
-        const map = L.map(mapRef.current, {
-          zoomControl: false,
-          scrollWheelZoom: false,
-          tap: true,
-        })
+        const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: false, tap: true })
         mapInstanceRef.current = map
 
         const el = mapRef.current
@@ -430,11 +516,8 @@ export default function StayMapView({ listings = [] }) {
         }).addTo(map)
 
         const cluster = L.markerClusterGroup({
-          chunkedLoading: true,
-          maxClusterRadius: 50,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: true,
-          zoomToBoundsOnClick: true,
+          chunkedLoading: true, maxClusterRadius: 50,
+          spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true,
           iconCreateFunction: function(cluster) {
             const childCount = cluster.getChildCount()
             let bgColor = '#e8590c', w = 30
@@ -463,7 +546,6 @@ export default function StayMapView({ listings = [] }) {
     }
 
     initMap()
-
     return () => {
       isMounted = false
       if (mapInstanceRef.current) {
@@ -476,7 +558,6 @@ export default function StayMapView({ listings = [] }) {
     }
   }, [listings])
 
-  // Sync markers with filtered listings
   useEffect(() => {
     if (!isMapReady) return
     const L = LRef.current
@@ -489,14 +570,35 @@ export default function StayMapView({ listings = [] }) {
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
       const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
-      const marker = L.marker([l.lat, l.lng], { icon })
-      marker.on('click', () => { setPopupListing(l); setActiveId(l.id) })
+      const marker = L.marker([l.lat, l.lng], { icon, tap: true, bubblingMouseEvents: false })
+
+      marker.on('click', (e) => {
+        // Store raw viewport coords — MobilePopup converts them to container-relative
+        const ev = e.originalEvent
+        const clientX = ev?.clientX ?? ev?.touches?.[0]?.clientX
+        const clientY = ev?.clientY ?? ev?.touches?.[0]?.clientY
+
+        if (clientX != null && clientY != null) {
+          setMarkerPosition({ clientX, clientY })
+        } else {
+          try {
+            const pt = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
+            const rect = mapContainerRef.current.getBoundingClientRect()
+            setMarkerPosition({ clientX: rect.left + pt.x, clientY: rect.top + pt.y })
+          } catch (_) {
+            setMarkerPosition({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 })
+          }
+        }
+
+        setPopupListing(l)
+        setActiveId(l.id)
+      })
+
       markersRef.current[l.id] = marker
       cluster.addLayer(marker)
     })
   }, [filtered, isMapReady])
 
-  // Highlight active marker
   useEffect(() => {
     Object.entries(markersRef.current).forEach(([id, marker]) => {
       const el = marker.getElement()
@@ -520,9 +622,14 @@ export default function StayMapView({ listings = [] }) {
 
   const handleSidebarHover = useCallback((id) => setActiveId(id), [])
 
-  // Shared map panel (used in both layouts)
+  const closePopup = useCallback(() => {
+    setPopupListing(null)
+    setActiveId(null)
+    setMarkerPosition(null)
+  }, [])
+
   const mapPanel = (
-    <div style={{ flex: 1, position: 'relative' }}>
+    <div ref={mapContainerRef} style={{ flex: 1, position: 'relative' }}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
 
       {/* Price legend */}
@@ -535,7 +642,7 @@ export default function StayMapView({ listings = [] }) {
         <div style={{ fontWeight: 600, marginBottom: 4, color: '#111' }}>Price / night</div>
         {[
           { color: '#0F6E56', label: 'Under $100' },
-          { color: '#b45309', label: '$100 – $250' },
+          { color: '#b45309', label: '$100 - $250' },
           { color: '#9a3412', label: '$250+' },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
@@ -565,11 +672,19 @@ export default function StayMapView({ listings = [] }) {
         }}
       >Fit all stays</button>
 
-      <MapPopup
-        listing={popupListing}
-        onClose={() => { setPopupListing(null); setActiveId(null) }}
-        isMobile={isMobile}
-      />
+      {isMobile ? (
+        <MobilePopup
+          listing={popupListing}
+          onClose={closePopup}
+          markerPosition={markerPosition}
+          mapContainerRef={mapContainerRef}
+        />
+      ) : (
+        <DesktopPopup
+          listing={popupListing}
+          onClose={closePopup}
+        />
+      )}
     </div>
   )
 
@@ -579,14 +694,10 @@ export default function StayMapView({ listings = [] }) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   </>
 
-  // ── MOBILE: stats + filters + full-screen map (no sidebar) ───────────────
+  // ── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        width: '100%', height: '100svh',
-        fontFamily: 'system-ui, sans-serif', overflow: 'hidden',
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100svh', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
         {cssLinks}
         <StatsBar listings={filtered} />
         <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={true} />
@@ -595,19 +706,14 @@ export default function StayMapView({ listings = [] }) {
     )
   }
 
-  // ── DESKTOP: stats + filters + sidebar + map ────────────────────────────
+  // ── DESKTOP ──────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
       {cssLinks}
       <StatsBar listings={filtered} />
       <FilterBar filters={filters} setFilters={setFilters} listings={listings} isMobile={false} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <ListingSidebar
-          listings={filtered}
-          activeId={activeId}
-          onHover={handleSidebarHover}
-          onClick={handleSidebarClick}
-        />
+        <ListingSidebar listings={filtered} activeId={activeId} onHover={handleSidebarHover} onClick={handleSidebarClick} />
         {mapPanel}
       </div>
     </div>
