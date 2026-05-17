@@ -176,4 +176,56 @@ export const saveListingImages = async (listingId, images) => {
   return { data }
 }
 
+// Coupons
+export const validateCoupon = async (code) => {
+  const { data, error } = await supabase
+    .from('coupons')
+    .select('*')
+    .eq('code', code.toUpperCase().trim())
+    .eq('is_active', true)
+    .single()
+  if (error) throw error
+  return { data }
+}
+
+export const incrementCouponUse = async (id) => {
+  const { error } = await supabase
+    .rpc('increment_coupon_uses', { coupon_id: id })
+  if (error) throw error
+}
+
+export const getAdminCoupons = async () => {
+  const { data, error } = await supabase
+    .from('coupons')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return { data }
+}
+
+export const createCoupon = async (data) => {
+  const { data: result, error } = await supabase
+    .from('coupons')
+    .insert(data)
+    .select()
+    .single()
+  if (error) throw error
+  return { data: result }
+}
+
+export const updateCoupon = async (id, data) => {
+  const { data: result, error } = await supabase
+    .from('coupons')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return { data: result }
+}
+
+export const deleteCoupon = async (id) => {
+  const { error } = await supabase.from('coupons').delete().eq('id', id)
+  if (error) throw error
+}
 export default supabase

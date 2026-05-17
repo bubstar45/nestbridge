@@ -8,6 +8,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import ReviewsSection from '@/components/ReviewsSection'
 import StayCard from '@/components/StayCard'
+import { getListing, createBooking, validateCoupon, incrementCouponUse } from '@/lib/api'
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 function IconPhoto({ className = 'w-4 h-4' }) {
@@ -492,11 +493,15 @@ export default function StayDetail() {
   const [checkOut, setCheckOut] = useState('')
   const [guests, setGuests]     = useState(1)
   const [booking, setBooking]   = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [coupon, setCoupon] = useState(null)
+  const [couponError, setCouponError] = useState('')
+  const [validating, setValidating] = useState(false)
   const [saved, setSaved]       = useState(false)
   const [galleryOpen, setGalleryOpen]   = useState(false)
   const [galleryStart, setGalleryStart] = useState(0)
   const [useCalendar, setUseCalendar]   = useState(false)
-   const [activeGuestPicker, setActiveGuestPicker] = useState(false)
+  const [activeGuestPicker, setActiveGuestPicker] = useState(false)
   const [adults, setAdults] = useState(0)
   const [children, setChildren] = useState(0)
   const [infants, setInfants] = useState(0)
