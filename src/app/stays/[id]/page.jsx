@@ -880,18 +880,21 @@ export default function StayDetail() {
       )}
       {/* Mobile coupon modal */}
       {activeCouponInput && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center lg:hidden" onClick={() => setActiveCouponInput(false)}>
-          <div className="bg-white w-full rounded-t-2xl p-5" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6 lg:hidden"
+          onClick={() => setActiveCouponInput(false)}>
+          <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Have a coupon?</h3>
-              <button onClick={() => setActiveCouponInput(false)} className="text-gray-400 text-xl">✕</button>
+              <h3 className="font-semibold text-gray-900 text-sm">Apply Coupon</h3>
+              <button onClick={() => setActiveCouponInput(false)} className="text-gray-400 text-lg leading-none">✕</button>
             </div>
             <div className="flex gap-2 mb-2">
               <input
                 value={couponCode}
                 onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCoupon(null); setCouponError('') }}
                 placeholder="Enter coupon code"
-                className="flex-1 border rounded-lg px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-stay-500"
+                style={{ fontSize: '16px' }}
+                className="flex-1 border rounded-lg px-3 py-2 font-mono uppercase focus:outline-none focus:ring-2 focus:ring-stay-500"
                 autoFocus
               />
               <button
@@ -903,14 +906,14 @@ export default function StayDetail() {
             </div>
             {couponError && <p className="text-xs text-red-500 mb-2">{couponError}</p>}
             {coupon && (
-              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-3">
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-2">
                 <span className="text-xs text-green-700 font-medium">✓ {coupon.code} — {coupon.discount_percent}% off</span>
-                <button onClick={() => { setCoupon(null); setCouponCode('') }} className="text-xs text-green-600">Remove</button>
+                <button onClick={() => { setCoupon(null); setCouponCode('') }} className="text-xs text-green-600 ml-2">Remove</button>
               </div>
             )}
             <button onClick={() => setActiveCouponInput(false)}
-              className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm mt-2">
-              Done
+              className="w-full py-2.5 bg-stay-500 text-white rounded-xl font-semibold text-sm mt-2">
+              {coupon ? 'Done' : 'Close'}
             </button>
           </div>
         </div>
