@@ -7,23 +7,32 @@ const TYPE_ICONS = {
 export default function RentalCard({ listing }) {
   const { id, title, city, state, price, bedrooms, bathrooms, sqft, type, available_from, amenities } = listing
 
-  const isAvailableSoon = available_from && 
-    (new Date(available_from) - new Date()) / 86400000 < 14
+  const now = new Date()
+  const availDate = available_from ? new Date(available_from) : null
+  const daysUntil = availDate ? (availDate - now) / 86400000 : null
+
+  const isAvailableNow  = availDate && availDate <= now
+  const isAvailableSoon = availDate && daysUntil > 0 && daysUntil < 30
 
   return (
     <Link href={`/rentals/${id}`}
       className="group block bg-white rounded-xl border border-gray-200 hover:border-brand-500 hover:shadow-lg transition-all overflow-hidden">
-      
+
       {/* Photo area */}
       <div className="relative h-48 bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center overflow-hidden">
         {listing.images?.[0]?.url ? (
           <img src={listing.images[0].url} alt={title} className="w-full h-full object-cover" />
-          ) : (
-        <span className="text-5xl">{TYPE_ICONS[type] ?? '🏠'}</span>
+        ) : (
+          <span className="text-5xl">{TYPE_ICONS[type] ?? '🏠'}</span>
         )}
         <div className="absolute top-3 left-3 flex gap-2">
-          {isAvailableSoon && (
+          {isAvailableNow && (
             <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+              Available Now
+            </span>
+          )}
+          {isAvailableSoon && (
+            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
               Available Soon
             </span>
           )}
@@ -75,9 +84,12 @@ export default function RentalCard({ listing }) {
         </div>
 
         {/* Available date */}
-        {available_from && (
+        {availDate && (
           <p className="text-xs text-gray-500">
-            Available {new Date(available_from).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {isAvailableNow
+              ? 'Available now'
+              : `Available ${availDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+            }
           </p>
         )}
       </div>
