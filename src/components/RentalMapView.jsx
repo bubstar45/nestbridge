@@ -1,8 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import 'leaflet/dist/leaflet.css'
-import 'leaflet.markercluster/dist/MarkerCluster.css'
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 const getCoverImage = (listing) =>
   listing?.images?.[0]?.url ?? listing?.coverImage ?? null
@@ -13,19 +11,16 @@ const PRICE_COLOR = (price) => {
   return { bg: '#A32D2D', border: '#D85A30', label: '#FAECE7' }
 }
 
-// Dot marker — solid circle with white ring, scales up on active
-const markerHtml = (isActive, col) => {
-  const size = isActive ? 20 : 14
-  const ring = isActive ? 3 : 2.5
-  return `
-    <div style="
-      width:${size}px;height:${size}px;border-radius:50%;
-      background:${col.bg};
-      border:${ring}px solid #fff;
-      box-shadow:0 2px 6px rgba(0,0,0,0.35);
-      transition:all .15s;
-      cursor:pointer;
-    "></div>`
+const dotHtml = (isActive, col) => {
+  const size = isActive ? 18 : 12
+  return `<div style="
+    width:${size}px;height:${size}px;border-radius:50%;
+    background:${col.bg};
+    border:2.5px solid #fff;
+    box-shadow:0 2px 6px rgba(0,0,0,0.32);
+    transition:width .12s,height .12s;
+    cursor:pointer;
+  "></div>`
 }
 
 const BED_OPTIONS = ['Any', '1', '2', '3', '4+']
@@ -223,7 +218,6 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-// Desktop popup — centred floating card, opens on hover
 function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
@@ -274,7 +268,6 @@ function DesktopPopup({ listing, onClose }) {
   )
 }
 
-// Mobile popup — anchored near marker, opens on touch
 function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   const [imgIdx, setImgIdx] = useState(0)
   const [pos, setPos] = useState(null)
@@ -290,10 +283,9 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
     const popupW = popupRef.current.offsetWidth || 240
     const popupH = popupRef.current.offsetHeight || 220
     const containerW = containerRect.width
-    const MARGIN = 10
-    const ARROW = 12
+    const MARGIN = 10, ARROW = 12
     const showBelow = cy < popupH + ARROW + MARGIN
-    let x = Math.max(popupW / 2 + MARGIN, Math.min(containerW - popupW / 2 - MARGIN, cx))
+    const x = Math.max(popupW / 2 + MARGIN, Math.min(containerW - popupW / 2 - MARGIN, cx))
     const y = showBelow ? cy + ARROW : cy - ARROW - popupH
     setPos({ x, y, showBelow })
   }, [markerPosition, listing?.id])
@@ -303,29 +295,19 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   const col = PRICE_COLOR(listing.price || 0)
   const images = listing?.images ?? []
   const activeUrl = images[imgIdx]?.url ?? getCoverImage(listing)
-
-  const arrowBase = {
-    position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-    width: 0, height: 0,
-    borderLeft: '7px solid transparent', borderRight: '7px solid transparent',
-  }
+  const arrowBase = { position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' }
 
   return (
     <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 999 }}>
-      <div
-        ref={popupRef}
-        onClick={e => e.stopPropagation()}
-        style={{
-          position: 'absolute',
-          top: pos ? pos.y : -9999,
-          left: pos ? pos.x : -9999,
-          transform: 'translateX(-50%)',
-          width: 230, background: '#fff', borderRadius: 12,
-          boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
-          overflow: 'visible', border: '1px solid #e5e7eb',
-          animation: pos ? 'mPopIn .15s ease' : 'none',
-        }}
-      >
+      <div ref={popupRef} onClick={e => e.stopPropagation()} style={{
+        position: 'absolute',
+        top: pos ? pos.y : -9999, left: pos ? pos.x : -9999,
+        transform: 'translateX(-50%)', width: 230,
+        background: '#fff', borderRadius: 12,
+        boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
+        overflow: 'visible', border: '1px solid #e5e7eb',
+        animation: pos ? 'mPopIn .15s ease' : 'none',
+      }}>
         <style>{`@keyframes mPopIn{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
         {pos && (pos.showBelow
           ? <div style={{ ...arrowBase, top: -7, borderBottom: '7px solid #fff', filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.08))' }} />
@@ -360,9 +342,9 @@ export default function RentalMapView({ listings = [] }) {
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
-  const clusterRef = useRef(null)
   const markersRef = useRef({})
   const LRef = useRef(null)
+  const hoverTimerRef = useRef(null)
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
   const [markerPosition, setMarkerPosition] = useState(null)
@@ -371,25 +353,24 @@ export default function RentalMapView({ listings = [] }) {
   const [filters, setFilters] = useState({ beds: 'Any', baths: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
   const isMobile = useIsMobile()
-  // Track hover-open timeout so we can cancel it
-  const hoverTimerRef = useRef(null)
 
-  // Helper: rebuild a single marker's icon (active vs normal)
-  const refreshMarkerIcon = useCallback((id, isActive) => {
+  // Rebuild one marker's icon (active vs normal size)
+  const refreshDot = useCallback((id, isActive) => {
     const L = LRef.current
     const marker = markersRef.current[id]
     if (!L || !marker) return
     const listing = filtered.find(l => String(l.id) === String(id))
     if (!listing) return
     const col = PRICE_COLOR(listing.price || 0)
+    const s = isActive ? 9 : 6
     marker.setIcon(L.divIcon({
       className: '',
-      iconAnchor: [isActive ? 10 : 7, isActive ? 10 : 7],
-      html: markerHtml(isActive, col),
+      iconAnchor: [s, s],
+      html: dotHtml(isActive, col),
     }))
   }, [filtered])
 
-  // Initialize map once
+  // Init map once
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapInstanceRef.current) return
@@ -399,7 +380,6 @@ export default function RentalMapView({ listings = [] }) {
       try {
         const L = (await import('leaflet')).default
         window.L = L
-        await import('leaflet.markercluster')
         if (!isMounted) return
         LRef.current = L
 
@@ -423,22 +403,6 @@ export default function RentalMapView({ listings = [] }) {
           subdomains: 'abcd', maxZoom: 19
         }).addTo(map)
 
-        const cluster = L.markerClusterGroup({
-          chunkedLoading: true, maxClusterRadius: 50,
-          spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true,
-          iconCreateFunction: (cluster) => {
-            const n = cluster.getChildCount()
-            let bg = '#0F6E56', w = 28
-            if (n > 10) { bg = '#A32D2D'; w = 42 }
-            else if (n > 5) { bg = '#854F0B'; w = 34 }
-            return L.divIcon({
-              html: `<div style="width:${w}px;height:${w}px;border-radius:50%;background:${bg};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:${w > 34 ? 13 : 11}px;">${n}</div>`,
-              className: '', iconSize: [w, w], iconAnchor: [w / 2, w / 2],
-            })
-          }
-        })
-        clusterRef.current = cluster
-        cluster.addTo(map)
         setIsMapReady(true)
 
         const valid = listings.filter(l => l.lat && l.lng)
@@ -458,36 +422,30 @@ export default function RentalMapView({ listings = [] }) {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
-        clusterRef.current = null
         LRef.current = null
         setIsMapReady(false)
       }
     }
   }, [listings])
 
-  // Sync markers when filtered listings change
+  // Place all dots directly on the map — no clustering
   useEffect(() => {
     if (!isMapReady) return
     const L = LRef.current
-    const cluster = clusterRef.current
-    if (!L || !cluster) return
+    const map = mapInstanceRef.current
+    if (!L || !map) return
 
-    cluster.clearLayers()
+    // Remove old markers
+    Object.values(markersRef.current).forEach(m => m.remove())
     markersRef.current = {}
 
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
       const col = PRICE_COLOR(l.price || 0)
-
-      const icon = L.divIcon({
-        className: '',
-        iconAnchor: [7, 7],
-        html: markerHtml(false, col),
-      })
-
+      const icon = L.divIcon({ className: '', iconAnchor: [6, 6], html: dotHtml(false, col) })
       const marker = L.marker([l.lat, l.lng], { icon, tap: true, bubblingMouseEvents: false })
 
-      // ── Desktop: open on mouseover, close on mouseout ──────────────────
+      // ── Desktop: hover to open ────────────────────────────────────────
       marker.on('mouseover', (e) => {
         clearTimeout(hoverTimerRef.current)
         const ev = e.originalEvent
@@ -495,9 +453,7 @@ export default function RentalMapView({ listings = [] }) {
         setPopupListing(l)
         setActiveId(l.id)
       })
-
       marker.on('mouseout', () => {
-        // Small delay so user can move cursor into the popup without it closing
         hoverTimerRef.current = setTimeout(() => {
           setPopupListing(null)
           setActiveId(null)
@@ -505,9 +461,9 @@ export default function RentalMapView({ listings = [] }) {
         }, 300)
       })
 
-      // ── Mobile: open on touchstart (instant, no tap needed) ────────────
+      // ── Mobile: tap to open ───────────────────────────────────────────
       marker.on('click', (e) => {
-        if (!isMobile) return // desktop handled by hover
+        if (!isMobile) return
         const ev = e.originalEvent
         const clientX = ev?.clientX ?? ev?.touches?.[0]?.clientX
         const clientY = ev?.clientY ?? ev?.touches?.[0]?.clientY
@@ -526,17 +482,17 @@ export default function RentalMapView({ listings = [] }) {
         setActiveId(l.id)
       })
 
+      marker.addTo(map)
       markersRef.current[l.id] = marker
-      cluster.addLayer(marker)
     })
   }, [filtered, isMapReady, isMobile])
 
-  // Resize active dot when activeId changes
+  // Resize active dot
   useEffect(() => {
     Object.keys(markersRef.current).forEach(id => {
-      refreshMarkerIcon(id, String(id) === String(activeId))
+      refreshDot(id, String(id) === String(activeId))
     })
-  }, [activeId, refreshMarkerIcon])
+  }, [activeId, refreshDot])
 
   const handleSidebarClick = useCallback((l) => {
     setPopupListing(l)
@@ -549,10 +505,7 @@ export default function RentalMapView({ listings = [] }) {
 
   const handleSidebarHover = useCallback((id) => {
     setActiveId(id)
-    if (!id) {
-      setPopupListing(null)
-      setMarkerPosition(null)
-    }
+    if (!id) { setPopupListing(null); setMarkerPosition(null) }
   }, [])
 
   const closePopup = useCallback(() => {
@@ -565,14 +518,9 @@ export default function RentalMapView({ listings = [] }) {
     <div
       ref={mapContainerRef}
       style={{ flex: 1, position: 'relative' }}
-      // Keep popup alive when mouse moves from marker into popup area
       onMouseEnter={() => clearTimeout(hoverTimerRef.current)}
       onMouseLeave={() => {
-        hoverTimerRef.current = setTimeout(() => {
-          setPopupListing(null)
-          setActiveId(null)
-          setMarkerPosition(null)
-        }, 300)
+        hoverTimerRef.current = setTimeout(closePopup, 300)
       }}
     >
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
@@ -597,14 +545,15 @@ export default function RentalMapView({ listings = [] }) {
         ))}
       </div>
 
-      {/* Fit all button */}
+      {/* Fit all */}
       <button
         onClick={() => {
           const map = mapInstanceRef.current
-          const cluster = clusterRef.current
-          if (!map || !cluster) return
-          const bounds = cluster.getBounds()
-          if (bounds && bounds.isValid()) map.fitBounds(bounds)
+          const L = LRef.current
+          if (!map || !L) return
+          const valid = filtered.filter(l => l.lat && l.lng)
+          if (!valid.length) return
+          map.fitBounds(L.latLngBounds(valid.map(l => [l.lat, l.lng])).pad(0.15))
         }}
         style={{
           position: 'absolute', top: 14, left: 14, zIndex: 500,
@@ -625,16 +574,9 @@ export default function RentalMapView({ listings = [] }) {
           mapContainerRef={mapContainerRef}
         />
       ) : (
-        // Desktop: keep popup alive when mouse is over it
         <div
           onMouseEnter={() => clearTimeout(hoverTimerRef.current)}
-          onMouseLeave={() => {
-            hoverTimerRef.current = setTimeout(() => {
-              setPopupListing(null)
-              setActiveId(null)
-              setMarkerPosition(null)
-            }, 300)
-          }}
+          onMouseLeave={() => { hoverTimerRef.current = setTimeout(closePopup, 300) }}
         >
           <DesktopPopup listing={popupListing} onClose={closePopup} />
         </div>
@@ -642,11 +584,9 @@ export default function RentalMapView({ listings = [] }) {
     </div>
   )
 
-  const cssLinks = <>
+  const cssLinks = (
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  </>
+  )
 
   if (isMobile) {
     return (
