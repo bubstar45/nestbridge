@@ -5,14 +5,29 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-// Listings - FIXED: Now includes images from listing_images table
+// Helper: Convert photo key to display URL
+function getPhotoUrl(photoKey, quality = 'hd') {
+  if (!photoKey) return null
+  if (photoKey.startsWith('http')) return photoKey // Already a full URL
+  
+  const qualities = {
+    thumbnail: '-p_e.webp',
+    hd: '-p_h.webp',
+    large: '-p_10.webp',
+    original: ''
+  }
+  const suffix = qualities[quality] || qualities.hd
+  return `https://photos.zillowstatic.com/fp/${photoKey}${suffix}`
+}
+
+// Listings - Now uses photo_keys from listing_images table
 export const getListings = async (params = {}) => {
   let query = supabase
     .from('listings')
     .select(`
       *,
       listing_images (
-        url,
+        photo_key,
         position
       )
     `)
@@ -26,25 +41,29 @@ export const getListings = async (params = {}) => {
   const { data, error } = await query.order('created_at', { ascending: false })
   if (error) throw error
   
-  // Transform to match RentalCard expected format: images: [{ url: string }]
+  // Transform to add photo_keys array and images array for backward compatibility
   const transformedData = data?.map(listing => ({
     ...listing,
+    photo_keys: listing.listing_images
+      ?.sort((a, b) => a.position - b.position)
+      .map(img => img.photo_key) || [],
+    // Backward compatibility: also provide images array with full URLs
     images: listing.listing_images
       ?.sort((a, b) => a.position - b.position)
-      .map(img => ({ url: img.url })) || []
+      .map(img => ({ url: getPhotoUrl(img.photo_key, 'hd') })) || []
   })) || []
   
   return { data: { listings: transformedData } }
 }
 
-// Get single listing - FIXED: Now includes images
+// Get single listing - Now uses photo_keys
 export const getListing = async (id) => {
   const { data, error } = await supabase
     .from('listings')
     .select(`
       *,
       listing_images (
-        url,
+        photo_key,
         position
       )
     `)
@@ -53,30 +72,34 @@ export const getListing = async (id) => {
   
   if (error) throw error
   
-  // Transform to add images array
+  // Transform to add photo_keys and images arrays
   const transformedData = {
     ...data,
+    photo_keys: data.listing_images
+      ?.sort((a, b) => a.position - b.position)
+      .map(img => img.photo_key) || [],
+    // Backward compatibility: also provide images array with full URLs
     images: data.listing_images
       ?.sort((a, b) => a.position - b.position)
-      .map(img => ({ url: img.url })) || []
+      .map(img => ({ url: getPhotoUrl(img.photo_key, 'hd') })) || []
   }
   
   return { data: transformedData }
 }
 
-// Get images for a listing (alternative method)
+// Get images for a listing (returns photo keys)
 export const getListingImages = async (listingId) => {
   const { data, error } = await supabase
     .from('listing_images')
-    .select('url, position')
+    .select('photo_key, position')
     .eq('listing_id', listingId)
     .order('position', { ascending: true })
   
   if (error) throw error
-  return { data: data?.map(img => img.url) || [] }
+  return { data: data?.map(img => img.photo_key) || [] }
 }
 
-// Update images for a listing
+// Update images for a listing - stores photo_keys
 export const updateListingImages = async (listingId, images) => {
   // First delete existing images
   const { error: deleteError } = await supabase
@@ -88,11 +111,25 @@ export const updateListingImages = async (listingId, images) => {
   
   // Then insert new images
   if (images && images.length > 0) {
-    const imageRecords = images.map((url, index) => ({
-      listing_id: listingId,
-      url: url,
-      position: index
-    }))
+    const imageRecords = images.map((image, index) => {
+      // If it's a full URL, extract the photo key
+      let photoKey = image
+      if (typeof image === 'string' && image.includes('photos.zillowstatic.com')) {
+        const match = image.match(/\/fp\/([a-f0-9]+)/)
+        if (match) photoKey = match[1]
+      }
+      // If it's an object with url property (backward compatibility)
+      if (typeof image === 'object' && image.url) {
+        const match = image.url.match(/\/fp\/([a-f0-9]+)/)
+        photoKey = match ? match[1] : image.url
+      }
+      
+      return {
+        listing_id: listingId,
+        photo_key: photoKey,
+        position: index
+      }
+    })
     
     const { error: insertError } = await supabase
       .from('listing_images')
@@ -102,6 +139,11 @@ export const updateListingImages = async (listingId, images) => {
   }
   
   return { data: images }
+}
+
+// Save listing images (alias for updateListingImages)
+export const saveListingImages = async (listingId, images) => {
+  return updateListingImages(listingId, images)
 }
 
 // Applications
@@ -164,17 +206,23 @@ export const getAdminListings = async () => {
     .from('listings')
     .select(`
       *,
-      listing_images (url, position)
+      listing_images (
+        photo_key,
+        position
+      )
     `)
     .order('created_at', { ascending: false })
   if (error) throw error
   
-  // Transform to include images array
+  // Transform to include photo_keys and images arrays
   const transformedData = data?.map(listing => ({
     ...listing,
+    photo_keys: listing.listing_images
+      ?.sort((a, b) => a.position - b.position)
+      .map(img => img.photo_key) || [],
     images: listing.listing_images
       ?.sort((a, b) => a.position - b.position)
-      .map(img => ({ url: img.url })) || []
+      .map(img => ({ url: getPhotoUrl(img.photo_key, 'hd') })) || []
   })) || []
   
   return { data: transformedData }
@@ -236,33 +284,6 @@ export const createReview = async (data) => {
 export const deleteReview = async (id) => {
   const { error } = await supabase.from('reviews').delete().eq('id', id)
   if (error) throw error
-}
-
-export const saveListingImages = async (listingId, images) => {
-  // First delete existing images
-  const { error: deleteError } = await supabase
-    .from('listing_images')
-    .delete()
-    .eq('listing_id', listingId)
-  
-  if (deleteError) throw deleteError
-  
-  // Then insert new images
-  if (images && images.length > 0) {
-    const imageRecords = images.map((url, index) => ({
-      listing_id: listingId,
-      url: url,
-      position: index
-    }))
-    
-    const { error: insertError } = await supabase
-      .from('listing_images')
-      .insert(imageRecords)
-    
-    if (insertError) throw insertError
-  }
-  
-  return { data: images }
 }
 
 // Coupons

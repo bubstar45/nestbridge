@@ -4,8 +4,23 @@ const TYPE_ICONS = {
   apartment: '🏢', house: '🏠', condo: '🏙', studio: '🛋', townhouse: '🏘'
 }
 
+// Helper function to construct Zillow image URL from photo key
+function getZillowImageUrl(photoKey, quality = 'hd') {
+  if (!photoKey) return null
+  
+  const qualities = {
+    thumbnail: '-p_e.webp',   // small, fast loading
+    hd: '-p_h.webp',          // high quality (recommended)
+    large: '-p_10.webp',      // largest size
+    original: ''               // no suffix
+  }
+  
+  const suffix = qualities[quality] || qualities.hd
+  return `https://photos.zillowstatic.com/fp/${photoKey}${suffix}`
+}
+
 export default function RentalCard({ listing }) {
-  const { id, title, city, state, price, bedrooms, bathrooms, sqft, type, available_from, amenities } = listing
+  const { id, title, city, state, price, bedrooms, bathrooms, sqft, type, available_from, amenities, photo_keys } = listing
 
   const now = new Date()
   const availDate = available_from ? new Date(available_from) : null
@@ -13,6 +28,10 @@ export default function RentalCard({ listing }) {
 
   const isAvailableNow  = availDate && availDate <= now
   const isAvailableSoon = availDate && daysUntil > 0 && daysUntil < 30
+  
+  // Get the first photo key (if exists)
+  const firstPhotoKey = photo_keys?.[0]
+  const coverImageUrl = firstPhotoKey ? getZillowImageUrl(firstPhotoKey, 'hd') : null
 
   return (
     <Link href={`/rentals/${id}`}
@@ -20,8 +39,13 @@ export default function RentalCard({ listing }) {
 
       {/* Photo area */}
       <div className="relative h-48 bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center overflow-hidden">
-        {listing.images?.[0]?.url ? (
-          <img src={listing.images[0].url} alt={title} className="w-full h-full object-cover" />
+        {coverImageUrl ? (
+          <img 
+            src={coverImageUrl} 
+            alt={title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+            loading="lazy"
+          />
         ) : (
           <span className="text-5xl">{TYPE_ICONS[type] ?? '🏠'}</span>
         )}

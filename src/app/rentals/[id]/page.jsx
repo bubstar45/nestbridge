@@ -21,6 +21,21 @@ const ROOM_CATEGORIES = [
   { key: 'other',    label: 'Other'       },
 ]
 
+// Helper function to construct Zillow image URL from photo key
+function getZillowImageUrl(photoKey, quality = 'hd') {
+  if (!photoKey) return null
+  
+  const qualities = {
+    thumbnail: '-p_e.webp',
+    hd: '-p_h.webp',
+    large: '-p_10.webp',
+    original: ''
+  }
+  
+  const suffix = qualities[quality] || qualities.hd
+  return `https://photos.zillowstatic.com/fp/${photoKey}${suffix}`
+}
+
 // SVG icon components
 function IconHome({ className = 'w-4 h-4' }) {
   return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -77,11 +92,10 @@ function getCategory(img, idx) {
   return AUTO_CATEGORIES[idx % AUTO_CATEGORIES.length]
 }
 
-// ── Ken Burns Slideshow ───────────────────────────────────────────────────────
-function KenBurnsSlideshow({ images, onOpenGallery }) {
+// ── Ken Burns Slideshow (updated to use photo_keys) ─────────────────────────
+function KenBurnsSlideshow({ photoKeys, onOpenGallery }) {
   const [current, setCurrent] = useState(0)
   const [prev, setPrev]       = useState(null)
-  const [animKey, setAnimKey] = useState(0)
   const timerRef              = useRef(null)
 
   const animations = [
@@ -94,19 +108,18 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
     setPrev(current)
     setCurrent(index)
     setAnim(animations[Math.floor(Math.random() * animations.length)])
-    setAnimKey(k => k + 1)
   }, [current])
 
-  const goNext = useCallback(() => goTo((current + 1) % images.length), [current, images.length, goTo])
-  const goPrev = useCallback(() => goTo((current - 1 + images.length) % images.length), [current, images.length, goTo])
+  const goNext = useCallback(() => goTo((current + 1) % photoKeys.length), [current, photoKeys.length, goTo])
+  const goPrev = useCallback(() => goTo((current - 1 + photoKeys.length) % photoKeys.length), [current, photoKeys.length, goTo])
 
   useEffect(() => {
-    if (images.length <= 1) return
+    if (photoKeys.length <= 1) return
     timerRef.current = setTimeout(goNext, 5000)
     return () => clearTimeout(timerRef.current)
-  }, [current, goNext, images.length])
+  }, [current, goNext, photoKeys.length])
 
-  if (images.length === 0) return null
+  if (photoKeys.length === 0) return null
 
   return (
     <div className="relative h-[280px] sm:h-[380px] md:h-[480px] w-full overflow-hidden rounded-2xl bg-gray-900 group">
@@ -120,34 +133,37 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
         .kb-slide { animation-duration:5.2s; animation-timing-function:ease-in-out; animation-fill-mode:both; will-change:transform; }
       `}</style>
 
-      {images.map((img, i) => (
-        <div
-          key={i}
-          className="absolute inset-0"
-          style={{
-            zIndex: i === current ? 2 : (i === prev ? 1 : 0),
-            opacity: i === current ? 1 : 0,
-            transition: 'opacity 0.8s ease-in-out',
-          }}
-        >
-          {img?.url ? (
-            <img
-              src={img.url}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover kb-slide"
-              style={{ animationName: i === current ? anim : 'none', animationPlayState: i === current ? 'running' : 'paused' }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
-              <span className="text-9xl">{TYPE_ICONS['apartment']}</span>
-            </div>
-          )}
-        </div>
-      ))}
+      {photoKeys.map((key, i) => {
+        const imageUrl = getZillowImageUrl(key, 'hd')
+        return (
+          <div
+            key={i}
+            className="absolute inset-0"
+            style={{
+              zIndex: i === current ? 2 : (i === prev ? 1 : 0),
+              opacity: i === current ? 1 : 0,
+              transition: 'opacity 0.8s ease-in-out',
+            }}
+          >
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover kb-slide"
+                style={{ animationName: i === current ? anim : 'none', animationPlayState: i === current ? 'running' : 'paused' }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
+                <span className="text-9xl">{TYPE_ICONS['apartment']}</span>
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-      {images.length > 1 && (
+      {photoKeys.length > 1 && (
         <>
           <button onClick={(e) => { e.stopPropagation(); goPrev() }}
             className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow text-gray-800 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -162,11 +178,11 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
 
       <div className="absolute bottom-3 left-0 right-0 z-20 flex items-center justify-between px-3 sm:px-5">
         <div className="flex gap-1.5">
-          {images.slice(0, 8).map((_, i) => (
+          {photoKeys.slice(0, 8).map((_, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); goTo(i) }}
               className={`h-1.5 rounded-full transition-all ${i === current ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`} />
           ))}
-          {images.length > 8 && <span className="text-white/60 text-xs ml-1">+{images.length - 8}</span>}
+          {photoKeys.length > 8 && <span className="text-white/60 text-xs ml-1">+{photoKeys.length - 8}</span>}
         </div>
 
         <button onClick={() => onOpenGallery(0)}
@@ -177,15 +193,15 @@ function KenBurnsSlideshow({ images, onOpenGallery }) {
             <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={1.8}/>
             <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={1.8}/>
           </svg>
-          See all photos ({images.length})
+          See all photos ({photoKeys.length})
         </button>
       </div>
     </div>
   )
 }
 
-// ── Photo Gallery Modal (Zillow-style) ────────────────────────────────────────
-function PhotoGalleryModal({ images, startIndex, onClose }) {
+// ── Photo Gallery Modal (updated to use photo_keys) ─────────────────────────
+function PhotoGalleryModal({ photoKeys, startIndex, onClose }) {
   const [current, setCurrentIdx] = useState(startIndex)
   const [zoomed, setZoomed]      = useState(false)
   const [origin, setOrigin]      = useState({ x: 50, y: 50 })
@@ -193,7 +209,6 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
   const dragging                 = useRef(false)
   const dragStart                = useRef({ mx: 0, my: 0, px: 0, py: 0 })
   const galleryPaneRef           = useRef(null)
-  const imgRef                   = useRef(null)
 
   const enterFullscreen = () => {
     const el = galleryPaneRef.current
@@ -255,15 +270,15 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
     const handle = (e) => {
       if (e.key === 'Escape') { if (zoomed) { setZoomed(false); setPan({ x: 0, y: 0 }) } else onClose() }
       if (!zoomed && e.key === 'ArrowLeft')  setCurrentIdx(i => Math.max(0, i - 1))
-      if (!zoomed && e.key === 'ArrowRight') setCurrentIdx(i => Math.min(images.length - 1, i + 1))
+      if (!zoomed && e.key === 'ArrowRight') setCurrentIdx(i => Math.min(photoKeys.length - 1, i + 1))
     }
     window.addEventListener('keydown', handle)
     document.body.style.overflow = 'hidden'
     return () => { window.removeEventListener('keydown', handle); document.body.style.overflow = '' }
-  }, [onClose, zoomed, images.length])
+  }, [onClose, zoomed, photoKeys.length])
 
-  const currentImg = images[current]
-  const roomLabel = currentImg ? (ROOM_CATEGORIES.find(c => c.key === getCategory(currentImg, current))?.label ?? 'Photo') : ''
+  const currentPhotoKey = photoKeys[current]
+  const currentImageUrl = currentPhotoKey ? getZillowImageUrl(currentPhotoKey, 'large') : null
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
@@ -272,7 +287,7 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
           <button onClick={onClose} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500">
             <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
-          <span className="text-xs sm:text-sm text-gray-500">{current + 1} of {images.length} photos</span>
+          <span className="text-xs sm:text-sm text-gray-500">{current + 1} of {photoKeys.length} photos</span>
         </div>
         <div className="flex gap-1 sm:gap-2">
           <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 hover:bg-gray-50">
@@ -288,8 +303,8 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
 
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         <div className="flex-1 bg-black relative overflow-hidden" ref={galleryPaneRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-          {currentImg?.url ? (
-            <img ref={imgRef} key={current} src={currentImg.url} alt="" onMouseDown={handleMouseDown} onClick={handleImgClick}
+          {currentImageUrl ? (
+            <img src={currentImageUrl} alt="" onMouseDown={handleMouseDown} onClick={handleImgClick}
               className={`absolute inset-0 w-full h-full select-none ${zoomed ? 'object-cover cursor-grab active:cursor-grabbing' : 'object-cover cursor-zoom-in'}`}
               style={{
                 transform: zoomed ? `scale(2.2) translate(${pan.x / 2.2}px, ${pan.y / 2.2}px)` : 'scale(1) translate(0,0)',
@@ -301,7 +316,7 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
               draggable={false} />
           ) : (<div className="flex items-center justify-center h-full"><IconPhoto className="w-16 h-16 text-gray-600 opacity-30" /></div>)}
 
-          {!zoomed && currentImg?.url && (
+          {!zoomed && currentImageUrl && (
             <button onClick={enterFullscreen} className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-1 sm:gap-1.5 bg-black/50 hover:bg-black/70 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
               <IconMaximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span className="hidden sm:inline">Full Screen</span>
@@ -312,13 +327,13 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
               <IconMinimize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Zoom out
             </button>
           )}
-          {images.length > 1 && (
+          {photoKeys.length > 1 && (
             <>
               <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.max(0, i - 1)) }} disabled={current === 0}
                 className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
               </button>
-              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(images.length - 1, i + 1)) }} disabled={current === images.length - 1}
+              <button onClick={() => { setZoomed(false); setPan({ x: 0, y: 0 }); setCurrentIdx(i => Math.min(photoKeys.length - 1, i + 1)) }} disabled={current === photoKeys.length - 1}
                 className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors flex items-center justify-center disabled:opacity-20 z-10">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
               </button>
@@ -329,10 +344,10 @@ function PhotoGalleryModal({ images, startIndex, onClose }) {
         <div className="w-full md:w-72 border-l bg-white flex flex-col overflow-hidden shrink-0">
           <div className="flex-1 overflow-y-auto p-3">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 gap-2">
-              {images.map((img, i) => (
+              {photoKeys.map((key, i) => (
                 <button key={i} onClick={() => { setCurrentIdx(i); setZoomed(false) }}
                   className={`aspect-square rounded-lg overflow-hidden transition-all ${i === current ? 'ring-2 ring-blue-500 ring-offset-1 opacity-100' : 'opacity-70 hover:opacity-90'}`}>
-                  {img.url ? (<img src={img.url} alt="" className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-gray-100 flex items-center justify-center"><IconPhoto className="w-6 h-6 text-gray-300" /></div>)}
+                  <img src={getZillowImageUrl(key, 'thumbnail')} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -404,16 +419,12 @@ export default function RentalDetail() {
     </div>
   )
 
-  const { title, city, state, address, price, bedrooms, bathrooms, sqft, type, description, amenities, available_from, images = [] } = listing
+  const { title, city, state, address, price, bedrooms, bathrooms, sqft, type, description, amenities, available_from, photo_keys = [] } = listing
   const moveInCost = price * 2
-
-  const displayImages = images.length > 0 ? images : [
-    { url: null, category: 'living' }, { url: null, category: 'kitchen' }, { url: null, category: 'bedroom' },
-  ]
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {galleryOpen && (<PhotoGalleryModal images={displayImages} startIndex={galleryStart} onClose={() => setGalleryOpen(false)} />)}
+      {galleryOpen && (<PhotoGalleryModal photoKeys={photo_keys} startIndex={galleryStart} onClose={() => setGalleryOpen(false)} />)}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
         <Link href="/rentals" className="text-xs sm:text-sm text-gray-500 hover:text-brand-500">
@@ -422,8 +433,8 @@ export default function RentalDetail() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6 sm:mb-8">
-        {displayImages.some(img => img.url) ? (
-          <KenBurnsSlideshow images={displayImages} onOpenGallery={openGallery} />
+        {photo_keys.length > 0 ? (
+          <KenBurnsSlideshow photoKeys={photo_keys} onOpenGallery={openGallery} />
         ) : (
           <div className="h-[280px] sm:h-[380px] md:h-[480px] bg-gradient-to-br from-brand-50 to-brand-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden" onClick={() => openGallery(0)}>
             <span className="text-7xl sm:text-9xl mb-2 sm:mb-4">{TYPE_ICONS[type] ?? '🏠'}</span>
@@ -501,7 +512,7 @@ export default function RentalDetail() {
             </div>
           </div>
 
-          {/* Right - apply card - hidden on mobile, shown on desktop */}
+          {/* Right - apply card */}
           <div className="hidden lg:block w-80 shrink-0">
             <div className="bg-white border rounded-2xl p-4 sm:p-6 sticky top-24 shadow-sm">
               <div className="mb-3 sm:mb-4">
@@ -547,7 +558,7 @@ export default function RentalDetail() {
         </div>
       </div>
 
-      {/* FLOATING APPLY BAR - visible only on mobile */}
+      {/* FLOATING APPLY BAR - mobile */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40 lg:hidden">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex-1">
