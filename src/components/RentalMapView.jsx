@@ -13,27 +13,19 @@ const PRICE_COLOR = (price) => {
   return { bg: '#A32D2D', border: '#D85A30', label: '#FAECE7' }
 }
 
-const markerHtml = (l) => {
-  const col = PRICE_COLOR(l.price || 0)
+// Dot marker — solid circle with white ring, scales up on active
+const markerHtml = (isActive, col) => {
+  const size = isActive ? 20 : 14
+  const ring = isActive ? 3 : 2.5
   return `
-    <div style="display:inline-flex;flex-direction:column;align-items:center">
-      <div style="
-        display:flex;align-items:center;
-        padding:5px 11px;border-radius:20px;
-        background:${col.bg};color:#fff;
-        font-size:12px;font-weight:700;letter-spacing:0.2px;
-        box-shadow:0 2px 6px rgba(0,0,0,0.32),0 0 0 2.5px #fff;
-        border:1.5px solid ${col.border};
-        white-space:nowrap;cursor:pointer;
-        transition:transform .15s;
-      " class="mpill-${l.id}">$${(l.price || 0).toLocaleString()}</div>
-      <div style="width:0;height:0;
-        border-left:5px solid transparent;border-right:5px solid transparent;
-        border-top:6px solid ${col.bg};
-        filter:drop-shadow(0 2px 1px rgba(0,0,0,0.15));
-        margin-top:-1px;
-      "></div>
-    </div>`
+    <div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${col.bg};
+      border:${ring}px solid #fff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      transition:all .15s;
+      cursor:pointer;
+    "></div>`
 }
 
 const BED_OPTIONS = ['Any', '1', '2', '3', '4+']
@@ -154,7 +146,7 @@ function FilterBar({ filters, setFilters, listings, isMobile }) {
             border: '1px solid #fca5a5', background: '#fef2f2',
             color: '#dc2626', cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
-          }}>Clear x</button>
+          }}>Clear ×</button>
       )}
     </div>
   )
@@ -231,7 +223,7 @@ function ListingSidebar({ listings, activeId, onHover, onClick }) {
   )
 }
 
-// Desktop popup — centred floating card
+// Desktop popup — centred floating card, opens on hover
 function DesktopPopup({ listing, onClose }) {
   const [imgIdx, setImgIdx] = useState(0)
   useEffect(() => { setImgIdx(0) }, [listing?.id])
@@ -252,11 +244,10 @@ function DesktopPopup({ listing, onClose }) {
     }}>
       <style>{`@keyframes popIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
       <div style={{ position: 'relative', width: '100%', height: 160, background: '#f3f4f6', overflow: 'hidden' }}>
-        {activeUrl ? (
-          <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>No photo</div>
-        )}
+        {activeUrl
+          ? <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9ca3af' }}>No photo</div>
+        }
         <div style={{ position: 'absolute', top: 10, left: 10, background: col.bg, color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 700 }}>
           ${listing.price?.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400 }}>/mo</span>
         </div>
@@ -283,7 +274,7 @@ function DesktopPopup({ listing, onClose }) {
   )
 }
 
-// Mobile popup — compact card anchored at container-relative coordinates
+// Mobile popup — anchored near marker, opens on touch
 function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   const [imgIdx, setImgIdx] = useState(0)
   const [pos, setPos] = useState(null)
@@ -292,35 +283,18 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   useEffect(() => { setImgIdx(0) }, [listing?.id])
 
   useEffect(() => {
-    // Recalculate whenever the marker position or the popup dimensions settle
     if (!markerPosition || !popupRef.current || !mapContainerRef?.current) return
-
     const containerRect = mapContainerRef.current.getBoundingClientRect()
-
-    // Convert viewport coords → container-relative coords
     const cx = markerPosition.clientX - containerRect.left
     const cy = markerPosition.clientY - containerRect.top
-
-    const popupW = popupRef.current.offsetWidth  || 240
+    const popupW = popupRef.current.offsetWidth || 240
     const popupH = popupRef.current.offsetHeight || 220
     const containerW = containerRect.width
-    const containerH = containerRect.height
     const MARGIN = 10
-    const ARROW = 12  // space for the little arrow
-
-    // Prefer showing above the tap point; fall back to below
-    const spaceAbove = cy
-    const showBelow = spaceAbove < popupH + ARROW + MARGIN
-
-    // Clamp horizontally so popup never bleeds off the sides
-    let x = cx
-    x = Math.max(popupW / 2 + MARGIN, x)
-    x = Math.min(containerW - popupW / 2 - MARGIN, x)
-
-    const y = showBelow
-      ? cy + ARROW           // top edge of popup sits below finger
-      : cy - ARROW - popupH  // bottom edge of popup sits above finger
-
+    const ARROW = 12
+    const showBelow = cy < popupH + ARROW + MARGIN
+    let x = Math.max(popupW / 2 + MARGIN, Math.min(containerW - popupW / 2 - MARGIN, cx))
+    const y = showBelow ? cy + ARROW : cy - ARROW - popupH
     setPos({ x, y, showBelow })
   }, [markerPosition, listing?.id])
 
@@ -333,44 +307,30 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
   const arrowBase = {
     position: 'absolute', left: '50%', transform: 'translateX(-50%)',
     width: 0, height: 0,
-    borderLeft: '7px solid transparent',
-    borderRight: '7px solid transparent',
+    borderLeft: '7px solid transparent', borderRight: '7px solid transparent',
   }
 
   return (
-    // Invisible full-screen dimmer so tapping outside closes the popup
-    <div
-      onClick={() => onClose()}
-      style={{ position: 'absolute', inset: 0, zIndex: 999 }}
-    >
+    <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 999 }}>
       <div
         ref={popupRef}
-        onClick={e => e.stopPropagation()} // don't close when tapping the card itself
+        onClick={e => e.stopPropagation()}
         style={{
           position: 'absolute',
-          // Use initial off-screen position before we measure; once pos is set, use it
           top: pos ? pos.y : -9999,
           left: pos ? pos.x : -9999,
           transform: 'translateX(-50%)',
-          width: 230,
-          background: '#fff',
-          borderRadius: 12,
+          width: 230, background: '#fff', borderRadius: 12,
           boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
-          overflow: 'visible',  // allow arrow to poke out
-          border: '1px solid #e5e7eb',
+          overflow: 'visible', border: '1px solid #e5e7eb',
           animation: pos ? 'mPopIn .15s ease' : 'none',
         }}
       >
         <style>{`@keyframes mPopIn{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}`}</style>
-
-        {/* Arrow pointing toward the marker */}
-        {pos && (
-          pos.showBelow
-            ? <div style={{ ...arrowBase, top: -7, borderBottom: '7px solid #fff', filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.08))' }} />
-            : <div style={{ ...arrowBase, bottom: -7, borderTop: '7px solid #fff', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.08))' }} />
+        {pos && (pos.showBelow
+          ? <div style={{ ...arrowBase, top: -7, borderBottom: '7px solid #fff', filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.08))' }} />
+          : <div style={{ ...arrowBase, bottom: -7, borderTop: '7px solid #fff', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.08))' }} />
         )}
-
-        {/* Image */}
         <div style={{ position: 'relative', width: '100%', height: 110, background: '#f3f4f6', overflow: 'hidden', borderRadius: '12px 12px 0 0' }}>
           {activeUrl
             ? <img src={activeUrl} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -379,28 +339,17 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
           <div style={{ position: 'absolute', top: 6, left: 6, background: col.bg, color: '#fff', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
             ${listing.price?.toLocaleString()}<span style={{ fontSize: 9, fontWeight: 400 }}>/mo</span>
           </div>
-          <button
-            onClick={onClose}
-            style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
-          >×</button>
+          <button onClick={onClose} style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}>×</button>
         </div>
-
-        {/* Body */}
         <div style={{ padding: '8px 10px 10px' }}>
-          <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {listing.title}
-          </div>
-          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>
-            {listing.city}, {listing.state}
-          </div>
+          <div style={{ fontWeight: 600, fontSize: 12, color: '#111', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{listing.title}</div>
+          <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 6 }}>{listing.city}, {listing.state}</div>
           <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
             <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.bedrooms} bd</span>
             <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.bathrooms} ba</span>
             {listing.sqft && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, background: '#f3f4f6', color: '#4b5563' }}>{listing.sqft.toLocaleString()} sqft</span>}
           </div>
-          <a href={`/rentals/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '7px', borderRadius: 8, background: '#3b5bdb', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-            View full listing →
-          </a>
+          <a href={`/rentals/${listing.id}`} style={{ display: 'block', textAlign: 'center', padding: '7px', borderRadius: 8, background: '#3b5bdb', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>View full listing →</a>
         </div>
       </div>
     </div>
@@ -409,19 +358,36 @@ function MobilePopup({ listing, onClose, markerPosition, mapContainerRef }) {
 
 export default function RentalMapView({ listings = [] }) {
   const mapRef = useRef(null)
-  const mapContainerRef = useRef(null)   // ← wraps the map div, used for coordinate math
+  const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const clusterRef = useRef(null)
   const markersRef = useRef({})
   const LRef = useRef(null)
   const [activeId, setActiveId] = useState(null)
   const [popupListing, setPopupListing] = useState(null)
-  const [markerPosition, setMarkerPosition] = useState(null) // viewport clientX/clientY
+  const [markerPosition, setMarkerPosition] = useState(null)
   const [isMapReady, setIsMapReady] = useState(false)
   const maxPrice = listings.length ? Math.max(...listings.map(l => l.price || 0)) : 5000
   const [filters, setFilters] = useState({ beds: 'Any', baths: 'Any', maxPrice })
   const filtered = applyFilters(listings, filters)
   const isMobile = useIsMobile()
+  // Track hover-open timeout so we can cancel it
+  const hoverTimerRef = useRef(null)
+
+  // Helper: rebuild a single marker's icon (active vs normal)
+  const refreshMarkerIcon = useCallback((id, isActive) => {
+    const L = LRef.current
+    const marker = markersRef.current[id]
+    if (!L || !marker) return
+    const listing = filtered.find(l => String(l.id) === String(id))
+    if (!listing) return
+    const col = PRICE_COLOR(listing.price || 0)
+    marker.setIcon(L.divIcon({
+      className: '',
+      iconAnchor: [isActive ? 10 : 7, isActive ? 10 : 7],
+      html: markerHtml(isActive, col),
+    }))
+  }, [filtered])
 
   // Initialize map once
   useEffect(() => {
@@ -460,14 +426,13 @@ export default function RentalMapView({ listings = [] }) {
         const cluster = L.markerClusterGroup({
           chunkedLoading: true, maxClusterRadius: 50,
           spiderfyOnMaxZoom: true, showCoverageOnHover: true, zoomToBoundsOnClick: true,
-          iconCreateFunction: function(cluster) {
-            const childCount = cluster.getChildCount()
-            let bgColor = '#3b5bdb', w = 30
-            if (childCount > 10) { bgColor = '#dc2626'; w = 46 }
-            else if (childCount > 5) { bgColor = '#e8590c'; w = 38 }
-            const fs = w === 46 ? 14 : w === 38 ? 12 : 11
+          iconCreateFunction: (cluster) => {
+            const n = cluster.getChildCount()
+            let bg = '#0F6E56', w = 28
+            if (n > 10) { bg = '#A32D2D'; w = 42 }
+            else if (n > 5) { bg = '#854F0B'; w = 34 }
             return L.divIcon({
-              html: `<div style="background-color:${bgColor};width:${w}px;height:${w}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:${fs}px;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid white;">${childCount}</div>`,
+              html: `<div style="width:${w}px;height:${w}px;border-radius:50%;background:${bg};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:${w > 34 ? 13 : 11}px;">${n}</div>`,
               className: '', iconSize: [w, w], iconAnchor: [w / 2, w / 2],
             })
           }
@@ -500,7 +465,7 @@ export default function RentalMapView({ listings = [] }) {
     }
   }, [listings])
 
-  // Sync markers
+  // Sync markers when filtered listings change
   useEffect(() => {
     if (!isMapReady) return
     const L = LRef.current
@@ -512,19 +477,43 @@ export default function RentalMapView({ listings = [] }) {
 
     filtered.forEach(l => {
       if (!l.lat || !l.lng) return
-      const icon = L.divIcon({ className: '', iconAnchor: [40, 42], html: markerHtml(l) })
+      const col = PRICE_COLOR(l.price || 0)
+
+      const icon = L.divIcon({
+        className: '',
+        iconAnchor: [7, 7],
+        html: markerHtml(false, col),
+      })
+
       const marker = L.marker([l.lat, l.lng], { icon, tap: true, bubblingMouseEvents: false })
 
+      // ── Desktop: open on mouseover, close on mouseout ──────────────────
+      marker.on('mouseover', (e) => {
+        clearTimeout(hoverTimerRef.current)
+        const ev = e.originalEvent
+        setMarkerPosition({ clientX: ev.clientX, clientY: ev.clientY })
+        setPopupListing(l)
+        setActiveId(l.id)
+      })
+
+      marker.on('mouseout', () => {
+        // Small delay so user can move cursor into the popup without it closing
+        hoverTimerRef.current = setTimeout(() => {
+          setPopupListing(null)
+          setActiveId(null)
+          setMarkerPosition(null)
+        }, 300)
+      })
+
+      // ── Mobile: open on touchstart (instant, no tap needed) ────────────
       marker.on('click', (e) => {
-        // Store raw viewport coords — MobilePopup converts them to container-relative
+        if (!isMobile) return // desktop handled by hover
         const ev = e.originalEvent
         const clientX = ev?.clientX ?? ev?.touches?.[0]?.clientX
         const clientY = ev?.clientY ?? ev?.touches?.[0]?.clientY
-
         if (clientX != null && clientY != null) {
           setMarkerPosition({ clientX, clientY })
         } else {
-          // Absolute fallback: use Leaflet's container point
           try {
             const pt = mapInstanceRef.current.latLngToContainerPoint([l.lat, l.lng])
             const rect = mapContainerRef.current.getBoundingClientRect()
@@ -533,7 +522,6 @@ export default function RentalMapView({ listings = [] }) {
             setMarkerPosition({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 })
           }
         }
-
         setPopupListing(l)
         setActiveId(l.id)
       })
@@ -541,20 +529,14 @@ export default function RentalMapView({ listings = [] }) {
       markersRef.current[l.id] = marker
       cluster.addLayer(marker)
     })
-  }, [filtered, isMapReady])
+  }, [filtered, isMapReady, isMobile])
 
-  // Highlight active marker pill
+  // Resize active dot when activeId changes
   useEffect(() => {
-    Object.entries(markersRef.current).forEach(([id, marker]) => {
-      const el = marker.getElement()
-      if (!el) return
-      const pill = el.querySelector(`[class^="mpill"]`)
-      if (pill) {
-        pill.style.transform = activeId === id ? 'scale(1.15)' : 'scale(1)'
-        pill.style.zIndex = activeId === id ? 999 : 1
-      }
+    Object.keys(markersRef.current).forEach(id => {
+      refreshMarkerIcon(id, String(id) === String(activeId))
     })
-  }, [activeId])
+  }, [activeId, refreshMarkerIcon])
 
   const handleSidebarClick = useCallback((l) => {
     setPopupListing(l)
@@ -565,7 +547,13 @@ export default function RentalMapView({ listings = [] }) {
     }
   }, [])
 
-  const handleSidebarHover = useCallback((id) => setActiveId(id), [])
+  const handleSidebarHover = useCallback((id) => {
+    setActiveId(id)
+    if (!id) {
+      setPopupListing(null)
+      setMarkerPosition(null)
+    }
+  }, [])
 
   const closePopup = useCallback(() => {
     setPopupListing(null)
@@ -574,7 +562,19 @@ export default function RentalMapView({ listings = [] }) {
   }, [])
 
   const mapPanel = (
-    <div ref={mapContainerRef} style={{ flex: 1, position: 'relative' }}>
+    <div
+      ref={mapContainerRef}
+      style={{ flex: 1, position: 'relative' }}
+      // Keep popup alive when mouse moves from marker into popup area
+      onMouseEnter={() => clearTimeout(hoverTimerRef.current)}
+      onMouseLeave={() => {
+        hoverTimerRef.current = setTimeout(() => {
+          setPopupListing(null)
+          setActiveId(null)
+          setMarkerPosition(null)
+        }, 300)
+      }}
+    >
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
 
       {/* Price legend */}
@@ -587,7 +587,7 @@ export default function RentalMapView({ listings = [] }) {
         <div style={{ fontWeight: 600, marginBottom: 4, color: '#111' }}>Price</div>
         {[
           { color: '#0F6E56', label: 'Under $2k' },
-          { color: '#854F0B', label: '$2k - $3k' },
+          { color: '#854F0B', label: '$2k – $3k' },
           { color: '#A32D2D', label: '$3k+' },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
@@ -625,10 +625,19 @@ export default function RentalMapView({ listings = [] }) {
           mapContainerRef={mapContainerRef}
         />
       ) : (
-        <DesktopPopup
-          listing={popupListing}
-          onClose={closePopup}
-        />
+        // Desktop: keep popup alive when mouse is over it
+        <div
+          onMouseEnter={() => clearTimeout(hoverTimerRef.current)}
+          onMouseLeave={() => {
+            hoverTimerRef.current = setTimeout(() => {
+              setPopupListing(null)
+              setActiveId(null)
+              setMarkerPosition(null)
+            }, 300)
+          }}
+        >
+          <DesktopPopup listing={popupListing} onClose={closePopup} />
+        </div>
       )}
     </div>
   )
@@ -639,7 +648,6 @@ export default function RentalMapView({ listings = [] }) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   </>
 
-  // ── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100svh', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
@@ -651,7 +659,6 @@ export default function RentalMapView({ listings = [] }) {
     )
   }
 
-  // ── DESKTOP ──────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'calc(100svh - 160px)', minHeight: 500, fontFamily: 'system-ui, sans-serif' }}>
       {cssLinks}
