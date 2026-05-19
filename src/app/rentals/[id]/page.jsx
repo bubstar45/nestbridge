@@ -278,7 +278,7 @@ function PhotoGalleryModal({ photoKeys, startIndex, onClose }) {
   }, [onClose, zoomed, photoKeys.length])
 
   const currentPhotoKey = photoKeys[current]
-  const currentImageUrl = currentPhotoKey ? getZillowImageUrl(currentPhotoKey, 'large') : null
+  const currentImageUrl = currentPhotoKey ? getZillowImageUrl(currentPhotoKey, 'hd') : null
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
